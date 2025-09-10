@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Box,
@@ -24,32 +24,40 @@ import {
   Grid,
   Chip,
   Button,
+  CircularProgress,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
   AccountCircle,
+  AccountBalance as AccountIcon,
+  People as PeopleIcon,
   School as SchoolIcon,
-  Schedule as ScheduleIcon,
   Assignment as AssignmentIcon,
-  Restaurant as RestaurantIcon,
-  Description as DescriptionIcon,
   Assessment as AssessmentIcon,
+  Schedule as ScheduleIcon,
   BookOnline as BookOnlineIcon,
   Payment as PaymentIcon,
   Settings as SettingsIcon,
   Logout as LogoutIcon,
   Dashboard as DashboardIcon,
   Person as PersonIcon,
-  Close as CloseIcon,
+  Security as SecurityIcon,
+  Analytics as AnalyticsIcon,
+  ManageAccounts as ManageAccountsIcon,
+  Report as ReportIcon,
+  LibraryBooks as LibraryBooksIcon,
+  AttachMoney as MoneyIcon,
+  TrendingUp as TrendingUpIcon,
+  Receipt as ReceiptIcon,
 } from '@mui/icons-material';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import ProfilePage from './ProfilePage';
+import AccountsProfile from './AccountsProfile';
 
 const drawerWidth = 280;
 
-const StudentPortal = () => {
-  const { user, logout } = useAuth();
+const AccountsPortal = () => {
+  const { user, logout, getRoleBasedAPI } = useAuth();
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -58,6 +66,28 @@ const StudentPortal = () => {
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
   const [selectedOption, setSelectedOption] = useState('dashboard');
   const [showProfile, setShowProfile] = useState(false);
+  const [accountStats, setAccountStats] = useState(null);
+  const [accountsProfile, setAccountsProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch account statistics on component mount
+  useEffect(() => {
+    const loadAccountData = async () => {
+      try {
+        setLoading(true);
+        const api = getRoleBasedAPI();
+        const response = await api.getAccountStatistics();
+        setAccountStats(response.data);
+        console.log('Account statistics loaded:', response.data);
+      } catch (error) {
+        console.error('Error loading account data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAccountData();
+  }, [getRoleBasedAPI]);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -87,14 +117,11 @@ const StudentPortal = () => {
 
   const navigationItems = [
     { id: 'dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
-    { id: 'classroom', label: 'My Classroom', icon: <SchoolIcon /> },
-    { id: 'attendance', label: 'Attendance Manager', icon: <ScheduleIcon /> },
-    { id: 'assignments', label: 'Assignments', icon: <AssignmentIcon /> },
-    { id: 'admission', label: 'Admission', icon: <DescriptionIcon /> },
-    { id: 'canteen', label: 'Canteen Order Online', icon: <RestaurantIcon /> },
-    { id: 'library', label: 'Library', icon: <BookOnlineIcon /> },
-    { id: 'results', label: 'Results', icon: <AssessmentIcon /> },
-    { id: 'fees', label: 'Fee Payment', icon: <PaymentIcon /> },
+    { id: 'accounts', label: 'Account Management', icon: <ManageAccountsIcon /> },
+    { id: 'transactions', label: 'Transactions', icon: <ReceiptIcon /> },
+    { id: 'fees', label: 'Fee Management', icon: <PaymentIcon /> },
+    { id: 'reports', label: 'Financial Reports', icon: <ReportIcon /> },
+    { id: 'analytics', label: 'Analytics', icon: <AnalyticsIcon /> },
     { id: 'settings', label: 'Settings', icon: <SettingsIcon /> },
   ];
 
@@ -104,17 +131,17 @@ const StudentPortal = () => {
       <Box
         sx={{
           p: 3,
-          background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+          background: 'linear-gradient(135deg, #f57c00 0%, #ffb74d 100%)',
           color: 'white',
           textAlign: 'center',
         }}
       >
-        <SchoolIcon sx={{ fontSize: 40, mb: 1 }} />
+        <AccountIcon sx={{ fontSize: 40, mb: 1 }} />
         <Typography variant="h6" component="div" sx={{ fontWeight: 'bold' }}>
           IIIT Una Portal
         </Typography>
         <Typography variant="body2" sx={{ opacity: 0.9 }}>
-          Student Portal
+          Accounts Portal
         </Typography>
       </Box>
 
@@ -141,25 +168,28 @@ const StudentPortal = () => {
               width: 50,
               height: 50,
               mr: 2,
-              background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+              background: 'linear-gradient(135deg, #f57c00 0%, #ffb74d 100%)',
             }}
           >
-            {user?.name?.charAt(0) || 'S'}
+            {accountsProfile?.name?.charAt(0) || user?.name?.charAt(0) || 'A'}
           </Avatar>
           <Box sx={{ flex: 1 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-              {user?.name || 'Student'}
+              {accountsProfile?.name || user?.name || 'Accountant'}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Roll: {user?.rollNumber || '23114'}
+              ID: {accountsProfile?.accountantId || accountsProfile?.id || 'ACC001'}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Accountant • Finance Department
             </Typography>
             <Chip
-              label="Student"
+              label="Accountant"
               size="small"
               sx={{
                 mt: 0.5,
-                backgroundColor: '#e3f2fd',
-                color: '#1976d2',
+                backgroundColor: '#fff3e0',
+                color: '#f57c00',
                 fontSize: '0.7rem',
               }}
             />
@@ -179,13 +209,13 @@ const StudentPortal = () => {
                   borderRadius: 2,
                   mx: 1,
                   '&.Mui-selected': {
-                    backgroundColor: '#e3f2fd',
-                    color: '#1976d2',
+                    backgroundColor: '#fff3e0',
+                    color: '#f57c00',
                     '&:hover': {
-                      backgroundColor: '#e3f2fd',
+                      backgroundColor: '#fff3e0',
                     },
                     '& .MuiListItemIcon-root': {
-                      color: '#1976d2',
+                      color: '#f57c00',
                     },
                   },
                   '&:hover': {
@@ -237,202 +267,111 @@ const StudentPortal = () => {
         return (
           <Box sx={{ p: 3 }}>
             <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', mb: 3 }}>
-              Welcome back, {user?.name || 'Student'}!
+              Welcome back, {accountsProfile?.name || user?.name || 'Accountant'}!
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+              Accountant • Finance Department • Manage all financial operations
             </Typography>
             
-            <Grid container spacing={3}>
-              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                <Card sx={{ textAlign: 'center', p: 2 }}>
-                  <SchoolIcon sx={{ fontSize: 40, color: '#1976d2', mb: 1 }} />
-                  <Typography variant="h4" gutterBottom>6</Typography>
-                  <Typography variant="body2" color="text.secondary">Active Courses</Typography>
-                </Card>
+            {loading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <Grid container spacing={3}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <Card sx={{ textAlign: 'center', p: 2 }}>
+                    <MoneyIcon sx={{ fontSize: 40, color: '#f57c00', mb: 1 }} />
+                    <Typography variant="h4" gutterBottom>
+                      {accountStats?.totalRevenue || '₹2,50,000'}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">Total Revenue</Typography>
+                  </Card>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <Card sx={{ textAlign: 'center', p: 2 }}>
+                    <PaymentIcon sx={{ fontSize: 40, color: '#388e3c', mb: 1 }} />
+                    <Typography variant="h4" gutterBottom>
+                      {accountStats?.pendingPayments || 15}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">Pending Payments</Typography>
+                  </Card>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <Card sx={{ textAlign: 'center', p: 2 }}>
+                    <TrendingUpIcon sx={{ fontSize: 40, color: '#1976d2', mb: 1 }} />
+                    <Typography variant="h4" gutterBottom>
+                      {accountStats?.monthlyGrowth || '12%'}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">Monthly Growth</Typography>
+                  </Card>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <Card sx={{ textAlign: 'center', p: 2 }}>
+                    <ReceiptIcon sx={{ fontSize: 40, color: '#7b1fa2', mb: 1 }} />
+                    <Typography variant="h4" gutterBottom>
+                      {accountStats?.totalTransactions || 245}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">Total Transactions</Typography>
+                  </Card>
+                </Grid>
               </Grid>
-              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                <Card sx={{ textAlign: 'center', p: 2 }}>
-                  <AssignmentIcon sx={{ fontSize: 40, color: '#388e3c', mb: 1 }} />
-                  <Typography variant="h4" gutterBottom>3</Typography>
-                  <Typography variant="body2" color="text.secondary">Pending Assignments</Typography>
-                </Card>
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                <Card sx={{ textAlign: 'center', p: 2 }}>
-                  <ScheduleIcon sx={{ fontSize: 40, color: '#f57c00', mb: 1 }} />
-                  <Typography variant="h4" gutterBottom>95%</Typography>
-                  <Typography variant="body2" color="text.secondary">Attendance</Typography>
-                </Card>
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                <Card sx={{ textAlign: 'center', p: 2 }}>
-                  <AssessmentIcon sx={{ fontSize: 40, color: '#7b1fa2', mb: 1 }} />
-                  <Typography variant="h4" gutterBottom>3.8</Typography>
-                  <Typography variant="body2" color="text.secondary">GPA</Typography>
-                </Card>
-              </Grid>
-            </Grid>
+            )}
 
             <Grid container spacing={3} sx={{ mt: 2 }}>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Card sx={{ p: 3 }}>
+                  <Typography variant="h6" gutterBottom>Quick Actions</Typography>
+                  <Grid container spacing={2}>
+                    <Grid size={6}>
+                      <Button fullWidth variant="outlined" startIcon={<PaymentIcon />}>
+                        Process Payment
+                      </Button>
+                    </Grid>
+                    <Grid size={6}>
+                      <Button fullWidth variant="outlined" startIcon={<ReceiptIcon />}>
+                        View Transactions
+                      </Button>
+                    </Grid>
+                    <Grid size={6}>
+                      <Button fullWidth variant="outlined" startIcon={<ReportIcon />}>
+                        Generate Report
+                      </Button>
+                    </Grid>
+                    <Grid size={6}>
+                      <Button fullWidth variant="outlined" startIcon={<AnalyticsIcon />}>
+                        View Analytics
+                      </Button>
+                    </Grid>
+                  </Grid>
+                </Card>
+              </Grid>
               <Grid size={{ xs: 12, md: 6 }}>
                 <Card sx={{ p: 3 }}>
                   <Typography variant="h6" gutterBottom>Recent Activities</Typography>
                   <List>
                     <ListItem>
                       <ListItemText
-                        primary="Assignment submitted: Math 101"
-                        secondary="2 hours ago"
+                        primary="Payment processed: Student Fees"
+                        secondary="1 hour ago"
                       />
                     </ListItem>
                     <ListItem>
                       <ListItemText
-                        primary="Grade posted: Physics Lab"
+                        primary="Report generated: Monthly Summary"
+                        secondary="3 hours ago"
+                      />
+                    </ListItem>
+                    <ListItem>
+                      <ListItemText
+                        primary="Transaction approved: Library Fees"
                         secondary="1 day ago"
-                      />
-                    </ListItem>
-                    <ListItem>
-                      <ListItemText
-                        primary="New assignment: Chemistry"
-                        secondary="2 days ago"
                       />
                     </ListItem>
                   </List>
                 </Card>
               </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Card sx={{ p: 3 }}>
-                  <Typography variant="h6" gutterBottom>Quick Actions</Typography>
-                  <Grid container spacing={2}>
-                    <Grid size={6}>
-                      <Button fullWidth variant="outlined" startIcon={<AssignmentIcon />}>
-                        Submit Assignment
-                      </Button>
-                    </Grid>
-                    <Grid size={6}>
-                      <Button fullWidth variant="outlined" startIcon={<ScheduleIcon />}>
-                        View Schedule
-                      </Button>
-                    </Grid>
-                    <Grid size={6}>
-                      <Button fullWidth variant="outlined" startIcon={<AssessmentIcon />}>
-                        Check Results
-                      </Button>
-                    </Grid>
-                    <Grid size={6}>
-                      <Button fullWidth variant="outlined" startIcon={<PaymentIcon />}>
-                        Pay Fees
-                      </Button>
-                    </Grid>
-                  </Grid>
-                </Card>
-              </Grid>
             </Grid>
-          </Box>
-        );
-      
-      case 'classroom':
-        return (
-          <Box sx={{ p: 3 }}>
-            <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
-              My Classroom
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Access your classroom materials, assignments, and resources.
-            </Typography>
-          </Box>
-        );
-      
-      case 'attendance':
-        return (
-          <Box sx={{ p: 3 }}>
-            <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
-              Attendance Manager
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Track your attendance and view attendance reports.
-            </Typography>
-          </Box>
-        );
-      
-      case 'assignments':
-        return (
-          <Box sx={{ p: 3 }}>
-            <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
-              Assignments
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              View and submit your assignments.
-            </Typography>
-          </Box>
-        );
-      
-      case 'admission':
-        return (
-          <Box sx={{ p: 3 }}>
-            <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
-              Admission
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Access admission-related information and documents.
-            </Typography>
-          </Box>
-        );
-      
-      case 'canteen':
-        return (
-          <Box sx={{ p: 3 }}>
-            <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
-              Canteen Order Online
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Order food from the college canteen online.
-            </Typography>
-          </Box>
-        );
-      
-      case 'library':
-        return (
-          <Box sx={{ p: 3 }}>
-            <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
-              Library
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Access library resources and manage your book loans.
-            </Typography>
-          </Box>
-        );
-      
-      case 'results':
-        return (
-          <Box sx={{ p: 3 }}>
-            <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
-              Results
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              View your academic results and grades.
-            </Typography>
-          </Box>
-        );
-      
-      case 'fees':
-        return (
-          <Box sx={{ p: 3 }}>
-            <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
-              Fee Payment
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Pay your fees and view payment history.
-            </Typography>
-          </Box>
-        );
-      
-      case 'settings':
-        return (
-          <Box sx={{ p: 3 }}>
-            <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
-              Settings
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Manage your account settings and preferences.
-            </Typography>
           </Box>
         );
       
@@ -440,10 +379,10 @@ const StudentPortal = () => {
         return (
           <Box sx={{ p: 3 }}>
             <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
-              Welcome to Student Portal
+              {navigationItems.find(item => item.id === selectedOption)?.label || 'Accounts Portal'}
             </Typography>
             <Typography variant="body1" color="text.secondary">
-              Select an option from the sidebar to get started.
+              This section is under development. Please check back later.
             </Typography>
           </Box>
         );
@@ -474,7 +413,7 @@ const StudentPortal = () => {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {navigationItems.find(item => item.id === selectedOption)?.label || 'Student Portal'}
+            {navigationItems.find(item => item.id === selectedOption)?.label || 'Accounts Portal'}
           </Typography>
           <IconButton
             size="large"
@@ -585,7 +524,7 @@ const StudentPortal = () => {
             transition={{ duration: 0.3 }}
           >
             {showProfile ? (
-              <ProfilePage onBack={handleBackFromProfile} />
+              <AccountsProfile onBack={handleBackFromProfile} />
             ) : (
               renderMainContent()
             )}
@@ -596,4 +535,4 @@ const StudentPortal = () => {
   );
 };
 
-export default StudentPortal;
+export default AccountsPortal;
