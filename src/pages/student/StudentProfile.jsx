@@ -268,19 +268,6 @@ const StudentProfile = ({ onBack }) => {
                     <Grid container spacing={2}>
                       <Grid size={{ xs: 12, sm: 6 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                          <BadgeIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                          <Box>
-                            <Typography variant="body2" color="text.secondary">
-                              Student ID
-                            </Typography>
-                            <Typography variant="body1">
-                              {profileData.studentId}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                           <SchoolIcon sx={{ mr: 1, color: 'text.secondary' }} />
                           <Box>
                             <Typography variant="body2" color="text.secondary">
@@ -346,12 +333,12 @@ const StudentProfile = ({ onBack }) => {
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                          <WorkIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                          <BadgeIcon sx={{ mr: 1, color: 'text.secondary' }} />
                           <Box>
                             <Typography variant="body2" color="text.secondary">
                               Roll Number
                             </Typography>
-                            <Typography variant="body1">
+                            <Typography variant="body1" sx={{ fontWeight: 'bold', color: '#1976d2' }}>
                               {profileData.rollNumber || 'N/A'}
                             </Typography>
                           </Box>

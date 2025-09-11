@@ -55,6 +55,11 @@ const TeacherProfile = ({ onBack }) => {
       setLoading(true);
       setError('');
       console.log('Fetching teacher profile...');
+      
+      // Check if auth token exists
+      const token = localStorage.getItem('authToken');
+      console.log('Auth token exists:', !!token);
+      
       const response = await teacherAPI.getProfile();
       console.log('Teacher profile response:', response);
       
@@ -74,16 +79,27 @@ const TeacherProfile = ({ onBack }) => {
         message: error.message,
         status: error.response?.status,
         statusText: error.response?.statusText,
-        data: error.response?.data
+        data: error.response?.data,
+        config: error.config,
+        request: error.request
       });
       
+      // Log the full error object for debugging
+      console.error('Full error object:', JSON.stringify(error, null, 2));
+      
       let errorMessage = 'Failed to load profile data';
-      if (error.response?.status === 404) {
+      if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
+        errorMessage = 'Network error. Please check your internet connection and try again.';
+      } else if (error.response?.status === 404) {
         errorMessage = 'Profile not found. Please contact support.';
       } else if (error.response?.status === 401) {
         errorMessage = 'Unauthorized access. Please login again.';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'Access forbidden. You do not have permission to view this profile.';
       } else if (error.response?.status >= 500) {
         errorMessage = 'Server error. Please try again later.';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
       } else if (error.message) {
         errorMessage = error.message;
       }
@@ -112,7 +128,21 @@ const TeacherProfile = ({ onBack }) => {
   if (error) {
     return (
       <Box sx={{ p: 3 }}>
-        <Alert severity="error">{error}</Alert>
+        <Alert 
+          severity="error" 
+          action={
+            <Button 
+              color="inherit" 
+              size="small" 
+              onClick={fetchProfileData}
+              sx={{ ml: 1 }}
+            >
+              Retry
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
       </Box>
     );
   }

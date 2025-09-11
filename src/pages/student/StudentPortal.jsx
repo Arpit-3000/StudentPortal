@@ -41,6 +41,12 @@ import {
   Dashboard as DashboardIcon,
   Person as PersonIcon,
   Close as CloseIcon,
+  Class as ClassIcon,
+  LibraryBooks as LibraryIcon,
+  EventAvailable as AttendanceIcon,
+  School as AdmissionIcon,
+  LocalDining as CanteenIcon,
+  ShoppingCart as OrderIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -87,13 +93,15 @@ const StudentPortal = () => {
 
   const navigationItems = [
     { id: 'dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
-    { id: 'schedule', label: 'Schedule', icon: <ScheduleIcon /> },
+    { id: 'myclassroom', label: 'My Classroom', icon: <ClassIcon /> },
+    { id: 'library', label: 'Library', icon: <LibraryIcon /> },
+    { id: 'attendance', label: 'Attendance', icon: <AttendanceIcon /> },
+    { id: 'admission', label: 'Admission', icon: <AdmissionIcon /> },
+    { id: 'canteen', label: 'Canteen Order Online', icon: <CanteenIcon /> },
     { id: 'assignments', label: 'Assignments', icon: <AssignmentIcon /> },
     { id: 'results', label: 'Results', icon: <AssessmentIcon /> },
-    { id: 'mess', label: 'Mess', icon: <RestaurantIcon /> },
-    { id: 'documents', label: 'Documents', icon: <DescriptionIcon /> },
-    { id: 'library', label: 'Library', icon: <BookOnlineIcon /> },
     { id: 'fees', label: 'Fees', icon: <PaymentIcon /> },
+    { id: 'documents', label: 'Documents', icon: <DescriptionIcon /> },
     { id: 'settings', label: 'Settings', icon: <SettingsIcon /> },
   ];
 
@@ -150,7 +158,7 @@ const StudentPortal = () => {
               {user?.name || 'Student'}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              ID: {user?.studentId || 'S001'}
+              Roll No: {user?.rollNumber || '23114'}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               {user?.course || 'Bachelor of Technology'} • {user?.year || '3rd Year'}
@@ -283,19 +291,25 @@ const StudentPortal = () => {
                   <List>
                     <ListItem>
                       <ListItemText
-                        primary="Assignment submitted: Data Structures"
+                        primary="Class attended: Data Structures"
                         secondary="2 hours ago"
                       />
                     </ListItem>
                     <ListItem>
                       <ListItemText
-                        primary="Class attended: Algorithm Design"
+                        primary="Library book issued: Algorithm Design"
                         secondary="4 hours ago"
                       />
                     </ListItem>
                     <ListItem>
                       <ListItemText
-                        primary="Result published: Mathematics"
+                        primary="Canteen order placed: Lunch"
+                        secondary="6 hours ago"
+                      />
+                    </ListItem>
+                    <ListItem>
+                      <ListItemText
+                        primary="Assignment submitted: Mathematics"
                         secondary="1 day ago"
                       />
                     </ListItem>
@@ -307,18 +321,28 @@ const StudentPortal = () => {
                   <Typography variant="h6" gutterBottom>Quick Actions</Typography>
                   <Grid container spacing={2}>
                     <Grid size={6}>
-                      <Button fullWidth variant="outlined" startIcon={<ScheduleIcon />}>
-                        View Schedule
+                      <Button fullWidth variant="outlined" startIcon={<ClassIcon />}>
+                        My Classroom
+                      </Button>
+                    </Grid>
+                    <Grid size={6}>
+                      <Button fullWidth variant="outlined" startIcon={<LibraryIcon />}>
+                        Library
+                      </Button>
+                    </Grid>
+                    <Grid size={6}>
+                      <Button fullWidth variant="outlined" startIcon={<AttendanceIcon />}>
+                        Attendance
+                      </Button>
+                    </Grid>
+                    <Grid size={6}>
+                      <Button fullWidth variant="outlined" startIcon={<CanteenIcon />}>
+                        Canteen Order
                       </Button>
                     </Grid>
                     <Grid size={6}>
                       <Button fullWidth variant="outlined" startIcon={<AssignmentIcon />}>
-                        Submit Assignment
-                      </Button>
-                    </Grid>
-                    <Grid size={6}>
-                      <Button fullWidth variant="outlined" startIcon={<AssessmentIcon />}>
-                        Check Results
+                        Assignments
                       </Button>
                     </Grid>
                     <Grid size={6}>

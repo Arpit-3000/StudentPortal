@@ -54,32 +54,56 @@ export const AuthProvider = ({ children }) => {
       
       console.log('Extracted Data:', data);
       
-      // Handle different possible response structures
+      // Handle different possible response structures based on role
       let token, userData;
+      
+      console.log('Parsing response for role:', userRole);
       
       // Try different possible response structures
       if (data.token && data.user) {
         token = data.token;
         userData = data.user;
+        console.log('Found user data in data.user');
       } else if (data.token && data.student) {
         token = data.token;
         userData = data.student;
+        console.log('Found student data in data.student');
       } else if (data.token && data.teacher) {
         token = data.token;
         userData = data.teacher;
+        console.log('Found teacher data in data.teacher');
       } else if (data.token && data.admin) {
         token = data.token;
         userData = data.admin;
+        console.log('Found admin data in data.admin');
       } else if (data.token && data.accountant) {
         token = data.token;
         userData = data.accountant;
+        console.log('Found accountant data in data.accountant');
       } else if (data.token) {
         token = data.token;
         userData = data; // Use the entire data object as user data
+        console.log('Using entire data object as user data');
       } else {
         // Fallback: try to extract from the response structure
         token = data.token || data.accessToken || data.authToken;
         userData = data.user || data.student || data.teacher || data.admin || data.accountant || data;
+        console.log('Using fallback extraction method');
+      }
+      
+      // Additional role-specific parsing
+      if (userRole === 'student' && data.student) {
+        userData = data.student;
+        console.log('Overriding with student-specific data');
+      } else if (userRole === 'teacher' && data.teacher) {
+        userData = data.teacher;
+        console.log('Overriding with teacher-specific data');
+      } else if (['super_admin', 'moderator', 'staff'].includes(userRole) && data.admin) {
+        userData = data.admin;
+        console.log('Overriding with admin-specific data');
+      } else if (userRole === 'accountant' && data.accountant) {
+        userData = data.accountant;
+        console.log('Overriding with accountant-specific data');
       }
       
       // Check if token exists
@@ -117,16 +141,10 @@ export const AuthProvider = ({ children }) => {
         console.log('Mapped role:', actualRole);
         console.log('Selected role:', userRole);
         
-        // Check if the selected role matches the backend role (for admin sub-roles, be more flexible)
-        const isAdminRole = ['super_admin', 'moderator', 'staff'].includes(userRole);
-        const isBackendAdminRole = ['super_admin', 'moderator', 'staff'].includes(actualRole);
-        
-        if (isAdminRole && isBackendAdminRole) {
-          // Both are admin roles, use the backend role
-          actualRole = actualRole;
-          console.log('Admin role detected, using backend role:', actualRole);
-        } else if (actualRole !== userRole) {
-          // Different role types, show error
+        // Check if the selected role matches the backend role exactly
+        // For admin sub-roles, we need exact match, not just any admin role
+        if (actualRole !== userRole) {
+          // Show error for role mismatch
           return { 
             success: false, 
             error: `Access denied. Your account is registered as ${safeUserData.role}, not ${userRole}. Please select the correct role.` 
@@ -186,12 +204,31 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
   };
 
-  const sendOTP = async (email) => {
+  const sendOTP = async (email, role = null, teacherId = null) => {
     try {
-      console.log('Sending OTP to:', email);
-      const response = await authAPI.sendOTP(email);
+      console.log('Sending OTP to:', email, 'Role:', role, 'Teacher ID:', teacherId);
+      
+      // Prepare request data based on role
+      let requestData = { email };
+      if (role === 'teacher' && teacherId) {
+        requestData.teacherId = teacherId;
+      }
+      if (role) {
+        requestData.role = role;
+      }
+      
+      const response = await authAPI.sendOTP(requestData);
       console.log('OTP sent successfully:', response);
-      return { success: true };
+      
+      // Handle different response structures
+      if (response.data) {
+        // Check if response contains role-specific data
+        if (response.data.student || response.data.teacher || response.data.admin || response.data.accountant) {
+          console.log('Role-specific response received:', response.data);
+        }
+      }
+      
+      return { success: true, data: response.data };
     } catch (error) {
       console.error('Send OTP error:', error);
       console.error('Error details:', {
@@ -205,7 +242,9 @@ export const AuthProvider = ({ children }) => {
       if (error.response?.status === 404) {
         errorMessage = 'Authentication service not found. Please contact support.';
       } else if (error.response?.status === 401) {
-        errorMessage = 'Invalid email address.';
+        errorMessage = 'Invalid email address or Teacher ID.';
+      } else if (error.response?.status === 400) {
+        errorMessage = error.response.data?.message || 'Invalid request. Please check your details.';
       } else if (error.response?.status >= 500) {
         errorMessage = 'Server error. Please try again later.';
       } else if (error.response?.data?.message) {

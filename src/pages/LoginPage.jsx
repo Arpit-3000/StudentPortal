@@ -68,6 +68,7 @@ const features = [
 const LoginPage = () => {
   const [selectedUserType, setSelectedUserType] = useState('');
   const [selectedAdminSubRole, setSelectedAdminSubRole] = useState('');
+  const [teacherId, setTeacherId] = useState('');
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -103,6 +104,12 @@ const LoginPage = () => {
       return;
     }
     
+    // If teacher is selected, check for teacher ID
+    if (selectedUserType === 'teacher' && !teacherId) {
+      setError('Please enter your Teacher ID');
+      return;
+    }
+    
     if (!email) {
       setError('Please enter your email address');
       return;
@@ -118,7 +125,13 @@ const LoginPage = () => {
     setLoading(true);
     setError('');
 
-    const result = await sendOTP(email);
+    console.log('LoginPage - Sending OTP with:', {
+      email: email,
+      role: selectedUserType,
+      teacherId: teacherId
+    });
+
+    const result = await sendOTP(email, selectedUserType, teacherId);
     
     if (result.success) {
       setOtpSent(true);
@@ -136,8 +149,8 @@ const LoginPage = () => {
       return;
     }
 
-    if (otp.length < 4) {
-      setError('Please enter a valid OTP');
+    if (otp.length !== 6) {
+      setError('Please enter a valid 6-digit OTP');
       return;
     }
 
@@ -171,6 +184,19 @@ const LoginPage = () => {
     setOtp('');
     setError('');
     setSelectedAdminSubRole('');
+    setTeacherId('');
+  };
+
+  // Handle Enter key press
+  const handleKeyPress = (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      if (step === 'login') {
+        handleSendOTP();
+      } else if (step === 'otp') {
+        handleVerifyOTP();
+      }
+    }
   };
 
   return (
@@ -711,12 +737,58 @@ const LoginPage = () => {
                       </FormControl>
                     )}
 
+                    {/* Teacher ID Field */}
+                    {selectedUserType === 'teacher' && (
+                      <TextField
+                        fullWidth
+                        label="Teacher ID"
+                        value={teacherId}
+                        onChange={(e) => setTeacherId(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        sx={{ 
+                          mb: 2.5,
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: 1,
+                            backgroundColor: '#ffffff',
+                            fontFamily: '"Inter", "Roboto", sans-serif',
+                            fontWeight: 500,
+                          },
+                          '& .MuiInputLabel-root': {
+                            fontFamily: '"Inter", "Roboto", sans-serif',
+                            fontSize: '0.9rem',
+                            fontWeight: 500,
+                            color: '#6b7280',
+                            '&.Mui-focused': { color: '#374151' }
+                          },
+                          '& .MuiOutlinedInput-notchedOutline': {
+                            borderColor: '#d1d5db',
+                          },
+                          '&:hover .MuiOutlinedInput-notchedOutline': {
+                            borderColor: '#9ca3af',
+                          },
+                          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                            borderColor: '#374151',
+                            borderWidth: '1px',
+                          },
+                        }}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <SchoolIcon sx={{ color: '#6b7280', fontSize: '1.2rem' }} />
+                            </InputAdornment>
+                          ),
+                        }}
+                        placeholder="Enter your Teacher ID"
+                      />
+                    )}
+
                     <TextField
                       fullWidth
                       label="Email Address"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      onKeyPress={handleKeyPress}
                       sx={{ 
                         mb: 2.5,
                         '& .MuiOutlinedInput-root': {
@@ -843,6 +915,9 @@ const LoginPage = () => {
                           }}
                         >
                       We've sent a verification code to <strong>{email}</strong>
+                      {selectedUserType === 'teacher' && teacherId && (
+                        <><br />Teacher ID: <strong>{teacherId}</strong></>
+                      )}
                     </Typography>
                       </Box>
                     </Box>
@@ -853,6 +928,9 @@ const LoginPage = () => {
                       type={showPassword ? 'text' : 'password'}
                       value={otp}
                       onChange={(e) => setOtp(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      inputProps={{ maxLength: 6 }}
+                      helperText={`${otp.length}/6 characters`}
                       sx={{ 
                         mb: 2.5,
                         '& .MuiOutlinedInput-root': {
