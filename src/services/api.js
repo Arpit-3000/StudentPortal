@@ -45,6 +45,11 @@ api.interceptors.response.use(
 );
 
 // API Endpoints
+// export const authAPI = {
+//   sendOTP: (requestData) => api.post('/api/auth/send-otp', requestData),
+//   verifyOTP: (email, otp) => api.post('/api/auth/verify-otp', { email, otp}),
+// };
+
 export const authAPI = {
   sendOTP: (requestData) => api.post('/api/auth/send-otp', requestData),
   verifyOTP: (email, otp, role = null) => {

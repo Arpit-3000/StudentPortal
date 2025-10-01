@@ -209,6 +209,42 @@ const LoginPage = () => {
     setLoading(false);
   };
 
+//   const handleVerifyOTP = async () => {
+//   if (!otp) {
+//     setError('Please enter the OTP');
+//     return;
+//   }
+
+//   if (otp.length !== 6) {
+//     setError('Please enter a valid 6-digit OTP');
+//     return;
+//   }
+
+//   setLoading(true);
+//   setError('');
+
+//   // Format role correctly for backend
+//   let finalRole = selectedUserType.toLowerCase();
+//   if (selectedUserType === 'admin' && selectedAdminSubRole) {
+//     finalRole = selectedAdminSubRole.toLowerCase().replace(' ', '_'); // super_admin, moderator, staff
+//   }
+
+//   console.log('Attempting login with role:', finalRole, 'for email:', email);
+//   const result = await login(email, otp, finalRole);
+
+//   if (result.success) {
+//     setError('');
+//     navigate('/dashboard');
+//   } else {
+//     const errorMessage = result.error || 'Login failed. Please try again.';
+//     setError(errorMessage);
+//     console.error('Login failed:', result.error);
+//   }
+
+//   setLoading(false);
+// };
+
+
   const handleBack = () => {
     setStep('login');
     setOtpSent(false);
