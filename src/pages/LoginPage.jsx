@@ -38,14 +38,22 @@ import idCardIcon from '../assets/idcard.svg';
 const userTypes = [
   { id: 'student', label: 'Student' },
   { id: 'teacher', label: 'Teacher' },
+  { id: 'nonteaching', label: 'Non-teaching Staff' },
   { id: 'admin', label: 'Administrator' },
-  { id: 'accountant', label: 'Accountant' },
 ];
 
 const adminSubRoles = [
   { id: 'super_admin', label: 'Super Admin' },
   { id: 'moderator', label: 'Moderator' },
   { id: 'staff', label: 'Staff' },
+];
+
+const nonTeachingRoles = [
+  { id: 'hostel_warden', label: 'Hostel Warden', prefix: 'HW' },
+  { id: 'attendant', label: 'Attendant', prefix: 'AD' },
+  { id: 'security_guard', label: 'Security Guard', prefix: 'GR' },
+  { id: 'maintenance', label: 'Maintenance', prefix: 'MT' },
+  { id: 'cleaning', label: 'Cleaning', prefix: 'CL' },
 ];
 
 const features = [
@@ -68,7 +76,9 @@ const features = [
 const LoginPage = () => {
   const [selectedUserType, setSelectedUserType] = useState('');
   const [selectedAdminSubRole, setSelectedAdminSubRole] = useState('');
+  const [selectedNonTeachingRole, setSelectedNonTeachingRole] = useState('');
   const [teacherId, setTeacherId] = useState('');
+  const [staffId, setStaffId] = useState('');
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -110,6 +120,25 @@ const LoginPage = () => {
       return;
     }
     
+    // If non-teaching staff is selected, check for role and staff ID
+    if (selectedUserType === 'nonteaching') {
+      if (!selectedNonTeachingRole) {
+        setError('Please select your staff role');
+        return;
+      }
+      if (!staffId) {
+        setError('Please enter your Staff ID');
+        return;
+      }
+      
+      // Validate staff ID prefix matches selected role
+      const selectedRole = nonTeachingRoles.find(role => role.id === selectedNonTeachingRole);
+      if (selectedRole && !staffId.toUpperCase().startsWith(selectedRole.prefix)) {
+        setError(`Staff ID must start with ${selectedRole.prefix} for ${selectedRole.label}`);
+        return;
+      }
+    }
+    
     if (!email) {
       setError('Please enter your email address');
       return;
@@ -128,10 +157,12 @@ const LoginPage = () => {
     console.log('LoginPage - Sending OTP with:', {
       email: email,
       role: selectedUserType,
-      teacherId: teacherId
+      teacherId: teacherId,
+      staffId: staffId,
+      nonTeachingRole: selectedNonTeachingRole
     });
 
-    const result = await sendOTP(email, selectedUserType, teacherId);
+    const result = await sendOTP(email, selectedUserType, teacherId, staffId, selectedNonTeachingRole);
     
     if (result.success) {
       setOtpSent(true);
@@ -184,7 +215,9 @@ const LoginPage = () => {
     setOtp('');
     setError('');
     setSelectedAdminSubRole('');
+    setSelectedNonTeachingRole('');
     setTeacherId('');
+    setStaffId('');
   };
 
   // Handle Enter key press
@@ -737,6 +770,55 @@ const LoginPage = () => {
                       </FormControl>
                     )}
 
+                    {/* Non-Teaching Staff Role Selection */}
+                    {selectedUserType === 'nonteaching' && (
+                      <FormControl fullWidth sx={{ mb: 2.5 }}>
+                        <InputLabel 
+                          sx={{ 
+                            fontFamily: '"Inter", "Roboto", sans-serif',
+                            fontSize: '0.9rem',
+                            fontWeight: 500,
+                            color: '#6b7280',
+                            '&.Mui-focused': { color: '#374151' }
+                          }}
+                        >
+                          Select Staff Role
+                        </InputLabel>
+                        <Select
+                          value={selectedNonTeachingRole}
+                          onChange={(e) => setSelectedNonTeachingRole(e.target.value)}
+                          label="Select Staff Role"
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              borderRadius: 1,
+                              backgroundColor: '#ffffff',
+                              fontFamily: '"Inter", "Roboto", sans-serif',
+                              fontWeight: 500,
+                            },
+                            '& .MuiOutlinedInput-notchedOutline': {
+                              borderColor: '#d1d5db',
+                            },
+                            '&:hover .MuiOutlinedInput-notchedOutline': {
+                              borderColor: '#9ca3af',
+                            },
+                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                              borderColor: '#374151',
+                              borderWidth: '1px',
+                            },
+                          }}
+                        >
+                          {nonTeachingRoles.map((role) => (
+                            <MenuItem key={role.id} value={role.id} sx={{ fontFamily: '"Inter", "Roboto", sans-serif', fontWeight: 500 }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <PersonIcon sx={{ mr: 1.5, color: '#6b7280', fontSize: '1.2rem' }} />
+                                {role.label} ({role.prefix})
+                              </Box>
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    )}
+
                     {/* Teacher ID Field */}
                     {selectedUserType === 'teacher' && (
                       <TextField
@@ -779,6 +861,51 @@ const LoginPage = () => {
                           ),
                         }}
                         placeholder="Enter your Teacher ID"
+                      />
+                    )}
+
+                    {/* Staff ID Field */}
+                    {selectedUserType === 'nonteaching' && (
+                      <TextField
+                        fullWidth
+                        label="Staff ID"
+                        value={staffId}
+                        onChange={(e) => setStaffId(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        sx={{ 
+                          mb: 2.5,
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: 1,
+                            backgroundColor: '#ffffff',
+                            fontFamily: '"Inter", "Roboto", sans-serif',
+                            fontWeight: 500,
+                          },
+                          '& .MuiInputLabel-root': {
+                            fontFamily: '"Inter", "Roboto", sans-serif',
+                            fontSize: '0.9rem',
+                            fontWeight: 500,
+                            color: '#6b7280',
+                            '&.Mui-focused': { color: '#374151' }
+                          },
+                          '& .MuiOutlinedInput-notchedOutline': {
+                            borderColor: '#d1d5db',
+                          },
+                          '&:hover .MuiOutlinedInput-notchedOutline': {
+                            borderColor: '#9ca3af',
+                          },
+                          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                            borderColor: '#374151',
+                            borderWidth: '1px',
+                          },
+                        }}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <PersonIcon sx={{ color: '#6b7280', fontSize: '1.2rem' }} />
+                            </InputAdornment>
+                          ),
+                        }}
+                        placeholder={`Enter your Staff ID (e.g., ${selectedNonTeachingRole ? nonTeachingRoles.find(r => r.id === selectedNonTeachingRole)?.prefix + '101' : 'AD101'})`}
                       />
                     )}
 
@@ -917,6 +1044,9 @@ const LoginPage = () => {
                       We've sent a verification code to <strong>{email}</strong>
                       {selectedUserType === 'teacher' && teacherId && (
                         <><br />Teacher ID: <strong>{teacherId}</strong></>
+                      )}
+                      {selectedUserType === 'nonteaching' && staffId && selectedNonTeachingRole && (
+                        <><br />Role: <strong>{nonTeachingRoles.find(r => r.id === selectedNonTeachingRole)?.label}</strong><br />Staff ID: <strong>{staffId}</strong></>
                       )}
                     </Typography>
                       </Box>

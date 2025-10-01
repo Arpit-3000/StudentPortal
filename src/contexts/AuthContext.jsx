@@ -36,7 +36,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, otp, userRole) => {
     try {
-      const response = await authAPI.verifyOTP(email, otp);
+      const response = await authAPI.verifyOTP(email, otp, userRole);
       
       // Debug logging to understand the response structure
       console.log('API Response:', response);
@@ -131,7 +131,19 @@ export const AuthProvider = ({ children }) => {
           'Staff': 'staff',
           'Teacher': 'teacher',
           'Student': 'student',
-          'Accountant': 'accountant'
+          'Accountant': 'accountant',
+          'NonTeachingStaff': 'non_teaching',
+          'Hostel Warden': 'hostel_warden',
+          'Security Head': 'security_head',
+          'Security Guard': 'security_guard',
+          'Attendant': 'attendant',
+          'Caretaker': 'caretaker',
+          'Administrative Staff': 'administrative_staff',
+          'Clerk': 'clerk',
+          'Receptionist': 'receptionist',
+          'Maintenance Staff': 'maintenance_staff',
+          'Cleaner': 'cleaner',
+          'Other': 'other'
         };
         
         // Get the mapped role or use the original role
@@ -141,10 +153,19 @@ export const AuthProvider = ({ children }) => {
         console.log('Mapped role:', actualRole);
         console.log('Selected role:', userRole);
         
-        // Check if the selected role matches the backend role exactly
-        // For admin sub-roles, we need exact match, not just any admin role
-        if (actualRole !== userRole) {
-          // Show error for role mismatch
+        // Check if the selected role matches the backend role
+        // For non-teaching staff, we need to check if the user selected nonteaching and backend returned a non-teaching role
+        if (userRole === 'nonteaching') {
+          // For non-teaching staff, any non-teaching role from backend is valid
+          const nonTeachingRoles = ['hostel_warden', 'security_head', 'security_guard', 'attendant', 'caretaker', 'administrative_staff', 'clerk', 'receptionist', 'maintenance_staff', 'cleaner', 'other'];
+          if (!nonTeachingRoles.includes(actualRole)) {
+            return { 
+              success: false, 
+              error: `Access denied. Your account is registered as ${safeUserData.role}, which is not a non-teaching staff role.` 
+            };
+          }
+        } else if (actualRole !== userRole) {
+          // For other roles, we need exact match
           return { 
             success: false, 
             error: `Access denied. Your account is registered as ${safeUserData.role}, not ${userRole}. Please select the correct role.` 
@@ -152,14 +173,23 @@ export const AuthProvider = ({ children }) => {
         }
       }
       
+      // For non-teaching staff, use the role from the database
+      let finalRole = actualRole;
+      if (userRole === 'nonteaching' && safeUserData.role) {
+        // Use the role from the database (already mapped above)
+        finalRole = actualRole;
+        console.log('Non-teaching staff role from database:', safeUserData.role, 'Mapped to:', finalRole);
+      }
+
       // Create user object with the determined role
       const userWithRole = {
         ...safeUserData,
-        role: actualRole, // Use the determined role
+        role: finalRole, // Use the final determined role
         email: email, // Ensure email is stored for role verification
         name: safeUserData.name || safeUserData.fullName || 'User', // Fallback for name
         id: safeUserData.id || safeUserData._id || Date.now().toString(), // Fallback for ID
-        originalRole: safeUserData.role // Store original backend role for reference
+        originalRole: safeUserData.role, // Store original backend role for reference
+        staffId: safeUserData.staffId // Store staff ID for reference
       };
       
       // Store token and user data in localStorage
@@ -204,16 +234,20 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
   };
 
-  const sendOTP = async (email, role = null, teacherId = null) => {
+  const sendOTP = async (email, role = null, teacherId = null, staffId = null, nonTeachingRole = null) => {
     try {
-      console.log('Sending OTP to:', email, 'Role:', role, 'Teacher ID:', teacherId);
+      console.log('Sending OTP to:', email, 'Role:', role, 'Teacher ID:', teacherId, 'Staff ID:', staffId, 'Non-teaching Role:', nonTeachingRole);
       
       // Prepare request data based on role
       let requestData = { email };
       if (role === 'teacher' && teacherId) {
         requestData.teacherId = teacherId;
       }
-      if (role) {
+      if (role === 'nonteaching' && staffId && nonTeachingRole) {
+        requestData.teacherId = staffId; // Backend expects teacherId field for non-teaching staff
+        requestData.role = 'non_teaching'; // Use non_teaching as the main role
+      }
+      if (role && role !== 'nonteaching') {
         requestData.role = role;
       }
       

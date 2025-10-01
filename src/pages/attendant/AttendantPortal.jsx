@@ -29,34 +29,28 @@ import {
   Menu as MenuIcon,
   AccountCircle,
   School as SchoolIcon,
-  Schedule as ScheduleIcon,
+  EventNote as LeaveIcon,
   Assignment as AssignmentIcon,
-  Restaurant as RestaurantIcon,
-  Description as DescriptionIcon,
-  Assessment as AssessmentIcon,
-  BookOnline as BookOnlineIcon,
-  Payment as PaymentIcon,
-  Settings as SettingsIcon,
-  Logout as LogoutIcon,
+  CheckCircle as VerifyIcon,
+  List as ListIcon,
   Dashboard as DashboardIcon,
   Person as PersonIcon,
   Close as CloseIcon,
-  Class as ClassIcon,
-  LibraryBooks as LibraryIcon,
-  EventAvailable as AttendanceIcon,
-  School as AdmissionIcon,
-  LocalDining as CanteenIcon,
-  ShoppingCart as OrderIcon,
-  EventNote as LeaveIcon,
+  Logout as LogoutIcon,
+  FilterList as FilterIcon,
+  Search as SearchIcon,
+  CheckCircle,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import StudentProfile from './StudentProfile';
-import LeaveManagement from './LeaveManagement';
+import AttendantProfile from './AttendantProfile';
+import PendingLeaveForms from './PendingLeaveForms';
+import AllLeaveForms from './AllLeaveForms';
+import LeaveFormDetails from './LeaveFormDetails';
 
 const drawerWidth = 280;
 
-const StudentPortal = () => {
+const AttendantPortal = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const theme = useTheme();
@@ -66,6 +60,8 @@ const StudentPortal = () => {
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
   const [selectedOption, setSelectedOption] = useState('dashboard');
   const [showProfile, setShowProfile] = useState(false);
+  const [selectedFormId, setSelectedFormId] = useState(null);
+  const [showFormDetails, setShowFormDetails] = useState(false);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -93,19 +89,21 @@ const StudentPortal = () => {
     navigate('/login');
   };
 
+  const handleViewForm = (formId) => {
+    setSelectedFormId(formId);
+    setShowFormDetails(true);
+  };
+
+  const handleBackFromFormDetails = () => {
+    setShowFormDetails(false);
+    setSelectedFormId(null);
+  };
+
   const navigationItems = [
     { id: 'dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
-    { id: 'myclassroom', label: 'My Classroom', icon: <ClassIcon /> },
-    { id: 'library', label: 'Library', icon: <LibraryIcon /> },
-    { id: 'attendance', label: 'Attendance', icon: <AttendanceIcon /> },
-    { id: 'applyleave', label: 'Apply Leave', icon: <LeaveIcon /> },
-    { id: 'admission', label: 'Admission', icon: <AdmissionIcon /> },
-    { id: 'canteen', label: 'Canteen Order Online', icon: <CanteenIcon /> },
-    { id: 'assignments', label: 'Assignments', icon: <AssignmentIcon /> },
-    { id: 'results', label: 'Results', icon: <AssessmentIcon /> },
-    { id: 'fees', label: 'Fees', icon: <PaymentIcon /> },
-    { id: 'documents', label: 'Documents', icon: <DescriptionIcon /> },
-    { id: 'settings', label: 'Settings', icon: <SettingsIcon /> },
+    { id: 'pending-forms', label: 'Pending Forms', icon: <LeaveIcon /> },
+    { id: 'all-forms', label: 'All Forms', icon: <ListIcon /> },
+    { id: 'verify-forms', label: 'Verify Forms', icon: <VerifyIcon /> },
   ];
 
   const drawer = (
@@ -124,60 +122,37 @@ const StudentPortal = () => {
           IIIT Una Portal
         </Typography>
         <Typography variant="body2" sx={{ opacity: 0.9 }}>
-          Student Portal
+          Attendant Portal
         </Typography>
       </Box>
 
       {/* Profile Section */}
       <Box sx={{ p: 2, borderBottom: '1px solid #e0e0e0' }}>
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            p: 2,
-            borderRadius: 2,
-            background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease',
-            '&:hover': {
-              transform: 'translateY(-2px)',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-            },
-          }}
-          onClick={handleProfileMenuOpen}
-        >
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
           <Avatar
             sx={{
               width: 50,
               height: 50,
               mr: 2,
-              background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+              bgcolor: '#1976d2',
+              fontSize: '1.2rem',
             }}
           >
-            {user?.name?.charAt(0) || 'S'}
+            {user?.name?.charAt(0) || 'A'}
           </Avatar>
-          <Box sx={{ flex: 1 }}>
+          <Box>
             <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-              {user?.name || 'Student'}
+              {user?.name || 'Attendant'}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Roll No: {user?.rollNumber || '23114'}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {user?.course || 'Bachelor of Technology'} • {user?.year || '3rd Year'}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {user?.branch || 'Computer Science and Engineering'}
+              {user?.staffId || 'Staff ID'}
             </Typography>
             <Chip
-              label="Student"
+              label={user?.role || 'Attendant'}
               size="small"
-              sx={{
-                mt: 0.5,
-                backgroundColor: '#e3f2fd',
-                color: '#1976d2',
-                fontSize: '0.7rem',
-              }}
+              color="primary"
+              variant="outlined"
+              sx={{ mt: 0.5 }}
             />
           </Box>
         </Box>
@@ -248,41 +223,59 @@ const StudentPortal = () => {
   );
 
   const renderMainContent = () => {
+    if (showProfile) {
+      return <AttendantProfile onBack={handleBackFromProfile} />;
+    }
+
+    if (showFormDetails && selectedFormId) {
+      return (
+        <LeaveFormDetails
+          formId={selectedFormId}
+          onBack={handleBackFromFormDetails}
+          onVerify={() => {
+            setShowFormDetails(false);
+            setSelectedFormId(null);
+            setSelectedOption('pending-forms');
+          }}
+        />
+      );
+    }
+
     switch (selectedOption) {
       case 'dashboard':
         return (
           <Box sx={{ p: 3 }}>
             <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', mb: 3 }}>
-              Welcome back, {user?.name || 'Student'}!
+              Welcome back, {user?.name || 'Attendant'}!
             </Typography>
             
             <Grid container spacing={3}>
               <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                 <Card sx={{ textAlign: 'center', p: 2 }}>
-                  <ScheduleIcon sx={{ fontSize: 40, color: '#1976d2', mb: 1 }} />
-                  <Typography variant="h4" gutterBottom>4</Typography>
-                  <Typography variant="body2" color="text.secondary">Today's Classes</Typography>
+                  <LeaveIcon sx={{ fontSize: 40, color: '#1976d2', mb: 1 }} />
+                  <Typography variant="h4" gutterBottom>12</Typography>
+                  <Typography variant="body2" color="text.secondary">Pending Forms</Typography>
                 </Card>
               </Grid>
               <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                 <Card sx={{ textAlign: 'center', p: 2 }}>
-                  <AssignmentIcon sx={{ fontSize: 40, color: '#1976d2', mb: 1 }} />
-                  <Typography variant="h4" gutterBottom>3</Typography>
-                  <Typography variant="body2" color="text.secondary">Pending Assignments</Typography>
+                  <VerifyIcon sx={{ fontSize: 40, color: '#388e3c', mb: 1 }} />
+                  <Typography variant="h4" gutterBottom>8</Typography>
+                  <Typography variant="body2" color="text.secondary">Verified Today</Typography>
                 </Card>
               </Grid>
               <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                 <Card sx={{ textAlign: 'center', p: 2 }}>
-                  <AssessmentIcon sx={{ fontSize: 40, color: '#388e3c', mb: 1 }} />
-                  <Typography variant="h4" gutterBottom>85%</Typography>
-                  <Typography variant="body2" color="text.secondary">Overall Grade</Typography>
+                  <AssignmentIcon sx={{ fontSize: 40, color: '#f57c00', mb: 1 }} />
+                  <Typography variant="h4" gutterBottom>45</Typography>
+                  <Typography variant="body2" color="text.secondary">Total Forms</Typography>
                 </Card>
               </Grid>
               <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                 <Card sx={{ textAlign: 'center', p: 2 }}>
-                  <PaymentIcon sx={{ fontSize: 40, color: '#f57c00', mb: 1 }} />
-                  <Typography variant="h4" gutterBottom>₹45,000</Typography>
-                  <Typography variant="body2" color="text.secondary">Fees Due</Typography>
+                  <CheckCircle sx={{ fontSize: 40, color: '#9c27b0', mb: 1 }} />
+                  <Typography variant="h4" gutterBottom>92%</Typography>
+                  <Typography variant="body2" color="text.secondary">Efficiency</Typography>
                 </Card>
               </Grid>
             </Grid>
@@ -294,26 +287,20 @@ const StudentPortal = () => {
                   <List>
                     <ListItem>
                       <ListItemText
-                        primary="Class attended: Data Structures"
+                        primary="Verified leave form for John Doe"
                         secondary="2 hours ago"
                       />
                     </ListItem>
                     <ListItem>
                       <ListItemText
-                        primary="Library book issued: Algorithm Design"
+                        primary="New leave form submitted by Jane Smith"
                         secondary="4 hours ago"
                       />
                     </ListItem>
                     <ListItem>
                       <ListItemText
-                        primary="Canteen order placed: Lunch"
+                        primary="Verified leave form for Mike Johnson"
                         secondary="6 hours ago"
-                      />
-                    </ListItem>
-                    <ListItem>
-                      <ListItemText
-                        primary="Assignment submitted: Mathematics"
-                        secondary="1 day ago"
                       />
                     </ListItem>
                   </List>
@@ -324,43 +311,43 @@ const StudentPortal = () => {
                   <Typography variant="h6" gutterBottom>Quick Actions</Typography>
                   <Grid container spacing={2}>
                     <Grid size={6}>
-                      <Button fullWidth variant="outlined" startIcon={<ClassIcon />}>
-                        My Classroom
-                      </Button>
-                    </Grid>
-                    <Grid size={6}>
-                      <Button fullWidth variant="outlined" startIcon={<LibraryIcon />}>
-                        Library
-                      </Button>
-                    </Grid>
-                    <Grid size={6}>
-                      <Button fullWidth variant="outlined" startIcon={<AttendanceIcon />}>
-                        Attendance
-                      </Button>
-                    </Grid>
-                    <Grid size={6}>
-                      <Button fullWidth variant="outlined" startIcon={<CanteenIcon />}>
-                        Canteen Order
-                      </Button>
-                    </Grid>
-                    <Grid size={6}>
-                      <Button fullWidth variant="outlined" startIcon={<AssignmentIcon />}>
-                        Assignments
-                      </Button>
-                    </Grid>
-                    <Grid size={6}>
-                      <Button fullWidth variant="outlined" startIcon={<PaymentIcon />}>
-                        Pay Fees
+                      <Button 
+                        fullWidth 
+                        variant="outlined" 
+                        startIcon={<LeaveIcon />}
+                        onClick={() => setSelectedOption('pending-forms')}
+                      >
+                        View Pending
                       </Button>
                     </Grid>
                     <Grid size={6}>
                       <Button 
                         fullWidth 
                         variant="outlined" 
-                        startIcon={<LeaveIcon />}
-                        onClick={() => setSelectedOption('applyleave')}
+                        startIcon={<ListIcon />}
+                        onClick={() => setSelectedOption('all-forms')}
                       >
-                        Apply Leave
+                        All Forms
+                      </Button>
+                    </Grid>
+                    <Grid size={6}>
+                      <Button 
+                        fullWidth 
+                        variant="outlined" 
+                        startIcon={<VerifyIcon />}
+                        onClick={() => setSelectedOption('verify-forms')}
+                      >
+                        Verify Forms
+                      </Button>
+                    </Grid>
+                    <Grid size={6}>
+                      <Button 
+                        fullWidth 
+                        variant="outlined" 
+                        startIcon={<PersonIcon />}
+                        onClick={handleProfileClick}
+                      >
+                        Profile
                       </Button>
                     </Grid>
                   </Grid>
@@ -370,14 +357,20 @@ const StudentPortal = () => {
           </Box>
         );
 
-      case 'applyleave':
-        return <LeaveManagement />;
-      
+      case 'pending-forms':
+        return <PendingLeaveForms onViewForm={handleViewForm} />;
+
+      case 'all-forms':
+        return <AllLeaveForms onViewForm={handleViewForm} />;
+
+      case 'verify-forms':
+        return <PendingLeaveForms onViewForm={handleViewForm} showVerifyOnly={true} />;
+
       default:
         return (
           <Box sx={{ p: 3 }}>
             <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
-              {navigationItems.find(item => item.id === selectedOption)?.label || 'Student Portal'}
+              {navigationItems.find(item => item.id === selectedOption)?.label || 'Attendant Portal'}
             </Typography>
             <Typography variant="body1" color="text.secondary">
               This section is under development. Please check back later.
@@ -411,7 +404,7 @@ const StudentPortal = () => {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {navigationItems.find(item => item.id === selectedOption)?.label || 'Student Portal'}
+            {navigationItems.find(item => item.id === selectedOption)?.label || 'Attendant Portal'}
           </Typography>
           <IconButton
             size="large"
@@ -431,36 +424,29 @@ const StudentPortal = () => {
       <Menu
         id="profile-menu"
         anchorEl={profileAnchorEl}
+        open={Boolean(profileAnchorEl)}
+        onClose={handleProfileMenuClose}
         anchorOrigin={{
           vertical: 'bottom',
           horizontal: 'right',
         }}
-        keepMounted
         transformOrigin={{
           vertical: 'top',
           horizontal: 'right',
         }}
-        open={Boolean(profileAnchorEl)}
-        onClose={handleProfileMenuClose}
       >
         <MenuItem onClick={handleProfileClick}>
           <ListItemIcon>
             <PersonIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText>Profile</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={handleProfileMenuClose}>
-          <ListItemIcon>
-            <SettingsIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Settings</ListItemText>
+          Profile
         </MenuItem>
         <Divider />
         <MenuItem onClick={handleLogout}>
           <ListItemIcon>
             <LogoutIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText>Logout</ListItemText>
+          Logout
         </MenuItem>
       </Menu>
 
@@ -509,23 +495,17 @@ const StudentPortal = () => {
           p: 0,
           width: { md: `calc(100% - ${drawerWidth}px)` },
           mt: '64px',
-          minHeight: 'calc(100vh - 64px)',
-          backgroundColor: '#f5f7fa',
         }}
       >
         <AnimatePresence mode="wait">
           <motion.div
-            key={showProfile ? 'profile' : selectedOption}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
+            key={selectedOption}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
           >
-            {showProfile ? (
-              <StudentProfile onBack={handleBackFromProfile} />
-            ) : (
-              renderMainContent()
-            )}
+            {renderMainContent()}
           </motion.div>
         </AnimatePresence>
       </Box>
@@ -533,4 +513,4 @@ const StudentPortal = () => {
   );
 };
 
-export default StudentPortal;
+export default AttendantPortal;

@@ -8,6 +8,7 @@ import StudentPortal from './pages/student/StudentPortal';
 import TeacherPortal from './pages/teacher/TeacherPortal';
 import AdminPortal from './pages/admin/AdminPortal';
 import AccountsPortal from './pages/accounts/AccountsPortal';
+import AttendantPortal from './pages/attendant/AttendantPortal';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -88,6 +89,22 @@ function App() {
       case 'accountant':
         console.log('Routing to Accounts Portal');
         return <AccountsPortal />;
+      case 'attendant':
+        console.log('Routing to Attendant Portal');
+        return <AttendantPortal />;
+      case 'hostel_warden':
+      case 'security_head':
+      case 'security_guard':
+      case 'caretaker':
+      case 'administrative_staff':
+      case 'clerk':
+      case 'receptionist':
+      case 'maintenance_staff':
+      case 'cleaner':
+      case 'other':
+      case 'non_teaching':
+        console.log('Routing to Admin Portal for staff role:', user.role);
+        return <AdminPortal />;
       default:
         console.error('Unknown user role:', user.role);
         return <Navigate to="/login" />;

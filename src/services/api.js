@@ -47,11 +47,20 @@ api.interceptors.response.use(
 // API Endpoints
 export const authAPI = {
   sendOTP: (requestData) => api.post('/api/auth/send-otp', requestData),
-  verifyOTP: (email, otp) => api.post('/api/auth/verify-otp', { email, otp }),
+  verifyOTP: (email, otp, role = null) => {
+    const requestData = { email, otp };
+    if (role) requestData.role = role;
+    return api.post('/api/auth/verify-otp', requestData);
+  },
 };
 
 export const studentAPI = {
   getProfile: () => api.get('/api/student/profile'),
+  // Leave Form APIs
+  submitLeaveForm: (data) => api.post('/api/leave-form/submit', data),
+  getMyLeaveForms: (params) => api.get('/api/leave-form/my-forms', { params }),
+  getLeaveForm: (id) => api.get(`/api/leave-form/${id}`),
+  deleteLeaveForm: (id) => api.delete(`/api/leave-form/${id}`),
 };
 
 export const teacherAPI = {
@@ -77,6 +86,17 @@ export const accountAPI = {
   getAccountsByHolder: (holderId, holderType) => api.get(`/api/account/holder/${holderId}/${holderType}`),
   getAllAccounts: () => api.get('/api/account/all'),
   getAccountStatistics: () => api.get('/api/account/statistics'),
+};
+
+export const nonTeachingAPI = {
+  getProfile: () => api.get('/api/non-teaching/profile'),
+  getDashboard: () => api.get('/api/non-teaching/dashboard'),
+  // Leave Form APIs
+  getPendingForms: (params) => api.get('/api/non-teaching/pending-forms', { params }),
+  getAllForms: (params) => api.get('/api/non-teaching/all-forms', { params }),
+  getFormDetails: (id) => api.get(`/api/non-teaching/forms/${id}`),
+  verifyForm: (id, data) => api.put(`/api/non-teaching/forms/${id}/verify`, data),
+  rejectForm: (id, data) => api.put(`/api/non-teaching/forms/${id}/reject-attendant`, data),
 };
 
 export default api;
