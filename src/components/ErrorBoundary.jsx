@@ -25,7 +25,7 @@ class ErrorBoundary extends React.Component {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+            background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
             p: 2,
           }}
         >
@@ -34,27 +34,81 @@ class ErrorBoundary extends React.Component {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <Card sx={{ maxWidth: 500, textAlign: 'center' }}>
-              <CardContent sx={{ p: 4 }}>
-                <Typography variant="h4" color="error" gutterBottom>
-                  Oops! Something went wrong
-                </Typography>
-                <Typography variant="body1" sx={{ mb: 3 }}>
-                  We encountered an error while loading the dashboard. Please try refreshing the page.
-                </Typography>
-                <Button
-                  variant="contained"
-                  onClick={() => window.location.reload()}
-                  sx={{ mr: 2 }}
-                >
-                  Refresh Page
-                </Button>
-                <Button
-                  variant="outlined"
-                  onClick={() => window.location.href = '/login'}
-                >
-                  Go to Login
-                </Button>
+            <Card sx={{ maxWidth: 600, textAlign: 'center', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}>
+              <CardContent sx={{ p: 6 }}>
+                <Box sx={{ mb: 4 }}>
+                  <Typography 
+                    variant="h3" 
+                    sx={{ 
+                      fontWeight: 700, 
+                      color: '#1e293b',
+                      mb: 2,
+                      background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                      backgroundClip: 'text',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                    }}
+                  >
+                    🚧 Under Development
+                  </Typography>
+                  <Typography 
+                    variant="h5" 
+                    sx={{ 
+                      color: '#64748b', 
+                      fontWeight: 500,
+                      mb: 3 
+                    }}
+                  >
+                    This page is currently under development
+                  </Typography>
+                  <Typography 
+                    variant="body1" 
+                    sx={{ 
+                      color: '#64748b', 
+                      fontSize: '1.1rem',
+                      lineHeight: 1.6,
+                      mb: 4 
+                    }}
+                  >
+                    We're working hard to bring you an amazing experience. 
+                    This feature will be available soon!
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <Button
+                    variant="contained"
+                    onClick={() => window.location.href = '/login'}
+                    sx={{ 
+                      px: 4,
+                      py: 1.5,
+                      borderRadius: 2,
+                      background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                      '&:hover': {
+                        background: 'linear-gradient(135deg, #5b21b6 0%, #7c3aed 100%)',
+                      }
+                    }}
+                  >
+                    Back to Login
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    onClick={() => window.location.reload()}
+                    sx={{ 
+                      px: 4,
+                      py: 1.5,
+                      borderRadius: 2,
+                      borderColor: '#cbd5e1',
+                      color: '#64748b',
+                      '&:hover': {
+                        borderColor: '#94a3b8',
+                        backgroundColor: '#f8fafc',
+                      }
+                    }}
+                  >
+                    Try Again
+                  </Button>
+                </Box>
               </CardContent>
             </Card>
           </motion.div>

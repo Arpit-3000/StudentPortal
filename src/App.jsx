@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoginPage from './pages/LoginPage';
@@ -9,26 +9,9 @@ import TeacherPortal from './pages/teacher/TeacherPortal';
 import AdminPortal from './pages/admin/AdminPortal';
 import AccountsPortal from './pages/accounts/AccountsPortal';
 import AttendantPortal from './pages/attendant/AttendantPortal';
-import LoadingSpinner from './components/LoadingSpinner';
+import PremiumLoadingSpinner from './components/PremiumLoadingSpinner';
 import ErrorBoundary from './components/ErrorBoundary';
-
-// Create Material-UI theme
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#dc004e',
-    },
-  },
-  typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-  },
-  shape: {
-    borderRadius: 12,
-  },
-});
+import theme from './theme';
 
 function App() {
   // Protected Route Component
@@ -36,7 +19,7 @@ function App() {
     const { isAuthenticated, loading } = useAuth();
 
     if (loading) {
-      return <LoadingSpinner message="Authenticating..." />;
+      return <PremiumLoadingSpinner message="Authenticating..." />;
     }
 
     return isAuthenticated ? children : <Navigate to="/login" />;
@@ -47,7 +30,7 @@ function App() {
     const { isAuthenticated, loading } = useAuth();
 
     if (loading) {
-      return <LoadingSpinner message="Loading..." />;
+      return <PremiumLoadingSpinner message="Loading..." />;
     }
 
     return !isAuthenticated ? children : <Navigate to="/dashboard" />;
@@ -59,7 +42,7 @@ function App() {
 
     // Show loading while checking authentication
     if (loading) {
-      return <LoadingSpinner message="Loading dashboard..." />;
+      return <PremiumLoadingSpinner message="Loading dashboard..." />;
     }
 
     // Redirect to login if no user or role

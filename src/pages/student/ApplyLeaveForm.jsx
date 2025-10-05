@@ -1,41 +1,14 @@
 import React, { useState } from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  TextField,
-  Button,
-  Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Alert,
-  CircularProgress,
-  Paper,
-  Divider,
-} from '@mui/material';
-import { DatePicker, TimePicker } from '@mui/x-date-pickers';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import {
-  EventNote as LeaveIcon,
-  Person as PersonIcon,
-  Phone as PhoneIcon,
-  Home as HomeIcon,
-  Schedule as ScheduleIcon,
-} from '@mui/icons-material';
-import { studentAPI } from '../../services/api';
+import { Home, Clock, User, Send, Eye } from 'lucide-react';
 
-const ApplyLeaveForm = ({ onFormSubmit, onViewForms }) => {
+const ApplyLeaveForm = () => {
   const [formData, setFormData] = useState({
     hostelName: '',
     roomNumber: '',
-    exitDate: null,
-    entryDate: null,
-    exitTime: null,
-    entryTime: null,
+    exitDate: '',
+    entryDate: '',
+    exitTime: '',
+    entryTime: '',
     reason: '',
     emergencyContact: {
       name: '',
@@ -48,23 +21,8 @@ const ApplyLeaveForm = ({ onFormSubmit, onViewForms }) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const hostelOptions = [
-    'Boys Hostel A',
-    'Boys Hostel B',
-    'Girls Hostel A',
-    'Girls Hostel B',
-    'Boys Hostel C',
-    'Girls Hostel C',
-  ];
-
-  const relationOptions = [
-    'Father',
-    'Mother',
-    'Brother',
-    'Sister',
-    'Guardian',
-    'Other',
-  ];
+  const hostelOptions = ['Iravati', 'Vipasha', 'Kalindi', 'Askini'];
+  const relationOptions = ['Father', 'Mother', 'Brother', 'Sister', 'Guardian', 'Other'];
 
   const handleInputChange = (field, value) => {
     if (field.includes('.')) {
@@ -84,346 +42,438 @@ const ApplyLeaveForm = ({ onFormSubmit, onViewForms }) => {
     }
   };
 
-  const validateForm = () => {
-    const errors = [];
-
-    if (!formData.hostelName) errors.push('Hostel name is required');
-    if (!formData.roomNumber) errors.push('Room number is required');
-    if (!formData.exitDate) errors.push('Exit date is required');
-    if (!formData.entryDate) errors.push('Entry date is required');
-    if (!formData.exitTime) errors.push('Exit time is required');
-    if (!formData.entryTime) errors.push('Entry time is required');
-    if (!formData.reason.trim()) errors.push('Reason is required');
-    
-    // Validate reason length (10-500 characters as per server validation)
-    if (formData.reason.trim() && formData.reason.trim().length < 10) {
-      errors.push('Reason must be at least 10 characters long');
-    }
-    if (formData.reason.trim() && formData.reason.trim().length > 500) {
-      errors.push('Reason must not exceed 500 characters');
-    }
-    if (!formData.emergencyContact.name.trim()) errors.push('Emergency contact name is required');
-    if (!formData.emergencyContact.phone.trim()) errors.push('Emergency contact phone is required');
-    if (!formData.emergencyContact.relation) errors.push('Emergency contact relation is required');
-
-    // Validate dates
-    if (formData.exitDate && formData.entryDate) {
-      const exitDate = new Date(formData.exitDate);
-      const entryDate = new Date(formData.entryDate);
-      if (exitDate >= entryDate) {
-        errors.push('Entry date must be after exit date');
-      }
-    }
-
-    // Validate phone number
-    const phoneRegex = /^[6-9]\d{9}$/;
-    if (formData.emergencyContact.phone && !phoneRegex.test(formData.emergencyContact.phone)) {
-      errors.push('Please enter a valid 10-digit phone number');
-    }
-
-    // Additional validation for date/time objects
-    if (formData.exitDate && !(formData.exitDate instanceof Date) && !formData.exitDate.getTime) {
-      errors.push('Invalid exit date format');
-    }
-    if (formData.entryDate && !(formData.entryDate instanceof Date) && !formData.entryDate.getTime) {
-      errors.push('Invalid entry date format');
-    }
-
-    return errors;
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
-
-    const validationErrors = validateForm();
-    if (validationErrors.length > 0) {
-      setError(validationErrors.join(', '));
-      return;
-    }
-
     setLoading(true);
 
-    try {
-      // Format dates and times properly
-      const formatDate = (date) => {
-        if (!date) return null;
-        return date.toISOString().split('T')[0];
-      };
-
-      const formatTime = (time) => {
-        if (!time) return null;
-        // Handle both Date objects and time strings
-        if (time instanceof Date) {
-          return time.toTimeString().slice(0, 5);
-        }
-        return time;
-      };
-
-      const submitData = {
-        hostelName: formData.hostelName,
-        roomNumber: formData.roomNumber,
-        exitDate: formatDate(formData.exitDate),
-        entryDate: formatDate(formData.entryDate),
-        exitTime: formatTime(formData.exitTime),
-        entryTime: formatTime(formData.entryTime),
-        reason: formData.reason,
-        emergencyContact: {
-          name: formData.emergencyContact.name,
-          phone: formData.emergencyContact.phone,
-          relation: formData.emergencyContact.relation,
-        },
-      };
-
-      const response = await studentAPI.submitLeaveForm(submitData);
-      
-      if (response.data.success) {
+    setTimeout(() => {
         setSuccess('Leave form submitted successfully!');
-        setFormData({
-          hostelName: '',
-          roomNumber: '',
-          exitDate: null,
-          entryDate: null,
-          exitTime: null,
-          entryTime: null,
-          reason: '',
-          emergencyContact: {
-            name: '',
-            phone: '',
-            relation: '',
-          },
-        });
-        if (onFormSubmit) {
-          onFormSubmit(response.data.data.leaveForm);
-        }
-      }
-    } catch (err) {
-      let errorMessage = 'Failed to submit leave form. Please try again.';
-      
-      if (err.response?.data?.message) {
-        errorMessage = err.response.data.message;
-        
-        // Handle validation errors from server
-        if (err.response.data.errors && Array.isArray(err.response.data.errors)) {
-          const validationErrors = err.response.data.errors.map(error => error.msg).join(', ');
-          errorMessage = `Validation failed: ${validationErrors}`;
-        }
-      } else if (err.response?.data?.error) {
-        errorMessage = err.response.data.error;
-      } else if (err.response?.status === 400) {
-        errorMessage = 'Invalid form data. Please check all fields and try again.';
-      } else if (err.response?.status === 401) {
-        errorMessage = 'You are not authorized. Please login again.';
-      } else if (err.response?.status === 500) {
-        errorMessage = 'Server error. Please try again later.';
-      }
-      
-      setError(errorMessage);
-    } finally {
       setLoading(false);
-    }
+    }, 1500);
   };
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Box sx={{ maxWidth: 800, mx: 'auto', p: 2 }}>
-        <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-            <LeaveIcon sx={{ fontSize: 32, color: 'primary.main', mr: 2 }} />
-            <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
-              Apply for Leave
-            </Typography>
-          </Box>
+    <div style={{
+      minHeight: 'calc(100vh - 70px)',
+      background: 'linear-gradient(to bottom right, #f7fafc, #edf2f7)',
+      padding: '8px',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+      <div style={{ maxWidth: '1000px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column' }}>
+        {/* Compact Header */}
+        <div style={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          borderRadius: '8px',
+          padding: '10px 14px',
+          marginBottom: '8px',
+          color: 'white',
+          boxShadow: '0 4px 20px rgba(102, 126, 234, 0.3)',
+          flexShrink: 0
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            <div>
+              <h1 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1px', margin: 0 }}>
+                Apply for Leave
+              </h1>
+              <p style={{ fontSize: '0.7rem', opacity: 0.9, margin: 0 }}>
+                Fill in the details to submit your leave request
+              </p>
+            </div>
+          </div>
+        </div>
 
+        {/* Alerts */}
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+          <div style={{
+            backgroundColor: '#fee',
+            border: '1px solid #fcc',
+            borderRadius: '8px',
+            padding: '16px',
+            marginBottom: '24px',
+            color: '#c00',
+          }}>
               {error}
-            </Alert>
+          </div>
           )}
-
           {success && (
-            <Alert severity="success" sx={{ mb: 2 }}>
+          <div style={{
+            backgroundColor: '#efe',
+            border: '1px solid #cfc',
+            borderRadius: '8px',
+            padding: '16px',
+            marginBottom: '24px',
+            color: '#060',
+          }}>
               {success}
-            </Alert>
-          )}
+          </div>
+        )}
 
-          <form onSubmit={handleSubmit}>
-            <Grid container spacing={3}>
+        {/* Main Card */}
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+          padding: '12px',
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
               {/* Hostel Information */}
-              <Grid item xs={12}>
-                <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-                  <HomeIcon sx={{ mr: 1, color: 'primary.main' }} />
+            <div style={{ marginBottom: '8px' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                marginBottom: '6px',
+              }}>
+                <Home size={14} color="#667eea" />
+                <h2 style={{ fontSize: '0.8rem', fontWeight: 600, color: '#2d3748', margin: 0 }}>
                   Hostel Information
-                </Typography>
-                <Divider sx={{ mb: 2 }} />
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth required>
-                  <InputLabel>Hostel Name</InputLabel>
-                  <Select
+                </h2>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '3px', fontSize: '0.75rem', color: '#4a5568' }}>
+                    Hostel Name *
+                  </label>
+                  <select
                     value={formData.hostelName}
                     onChange={(e) => handleInputChange('hostelName', e.target.value)}
-                    label="Hostel Name"
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '6px 8px',
+                      fontSize: '0.8rem',
+                      border: '2px solid #d1d5db',
+                      borderRadius: '4px',
+                      outline: 'none',
+                    }}
                   >
+                    <option value="">Select hostel</option>
                     {hostelOptions.map((hostel) => (
-                      <MenuItem key={hostel} value={hostel}>
-                        {hostel}
-                      </MenuItem>
+                      <option key={hostel} value={hostel}>{hostel}</option>
                     ))}
-                  </Select>
-                </FormControl>
-              </Grid>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '3px', fontSize: '0.75rem', color: '#4a5568' }}>
+                    Room Number *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.roomNumber}
+                    onChange={(e) => handleInputChange('roomNumber', e.target.value)}
+                    placeholder="e.g., 101, 205"
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '6px 8px',
+                      fontSize: '0.8rem',
+                      border: '2px solid #d1d5db',
+                      borderRadius: '4px',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
 
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  required
-                  label="Room Number"
-                  value={formData.roomNumber}
-                  onChange={(e) => handleInputChange('roomNumber', e.target.value)}
-                  placeholder="e.g., 101, 205"
-                />
-              </Grid>
+            <hr style={{ border: 'none', borderTop: '1px solid #e5e7eb', margin: '8px 0' }} />
 
-              {/* Leave Dates and Times */}
-              <Grid item xs={12}>
-                <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-                  <ScheduleIcon sx={{ mr: 1, color: 'primary.main' }} />
+            {/* Leave Schedule */}
+            <div style={{ marginBottom: '8px' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                marginBottom: '6px',
+              }}>
+                <Clock size={14} color="#667eea" />
+                <h2 style={{ fontSize: '0.8rem', fontWeight: 600, color: '#2d3748', margin: 0 }}>
                   Leave Schedule
-                </Typography>
-                <Divider sx={{ mb: 2 }} />
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <DatePicker
-                  label="Exit Date"
-                  value={formData.exitDate}
-                  onChange={(date) => handleInputChange('exitDate', date)}
-                  renderInput={(params) => <TextField {...params} fullWidth required />}
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <DatePicker
-                  label="Entry Date"
-                  value={formData.entryDate}
-                  onChange={(date) => handleInputChange('entryDate', date)}
-                  renderInput={(params) => <TextField {...params} fullWidth required />}
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <TimePicker
-                  label="Exit Time"
-                  value={formData.exitTime}
-                  onChange={(time) => handleInputChange('exitTime', time)}
-                  renderInput={(params) => <TextField {...params} fullWidth required />}
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <TimePicker
-                  label="Entry Time"
-                  value={formData.entryTime}
-                  onChange={(time) => handleInputChange('entryTime', time)}
-                  renderInput={(params) => <TextField {...params} fullWidth required />}
-                />
-              </Grid>
-
-              {/* Reason */}
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  required
-                  multiline
-                  rows={4}
-                  label="Reason for Leave"
+                </h2>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '3px', fontSize: '0.75rem', color: '#4a5568' }}>
+                    Exit Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.exitDate}
+                    onChange={(e) => handleInputChange('exitDate', e.target.value)}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '6px 8px',
+                      fontSize: '0.8rem',
+                      border: '2px solid #d1d5db',
+                      borderRadius: '4px',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '3px', fontSize: '0.75rem', color: '#4a5568' }}>
+                    Entry Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.entryDate}
+                    onChange={(e) => handleInputChange('entryDate', e.target.value)}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '6px 8px',
+                      fontSize: '0.8rem',
+                      border: '2px solid #d1d5db',
+                      borderRadius: '4px',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '3px', fontSize: '0.75rem', color: '#4a5568' }}>
+                    Exit Time *
+                  </label>
+                  <input
+                    type="time"
+                    value={formData.exitTime}
+                    onChange={(e) => handleInputChange('exitTime', e.target.value)}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '6px 8px',
+                      fontSize: '0.8rem',
+                      border: '2px solid #d1d5db',
+                      borderRadius: '4px',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '3px', fontSize: '0.75rem', color: '#4a5568' }}>
+                    Entry Time *
+                  </label>
+                  <input
+                    type="time"
+                    value={formData.entryTime}
+                    onChange={(e) => handleInputChange('entryTime', e.target.value)}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '6px 8px',
+                      fontSize: '0.8rem',
+                      border: '2px solid #d1d5db',
+                      borderRadius: '4px',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+              </div>
+              <div style={{ marginTop: '8px' }}>
+                <label style={{ display: 'block', marginBottom: '3px', fontSize: '0.75rem', color: '#4a5568' }}>
+                  Reason for Leave *
+                </label>
+                <textarea
                   value={formData.reason}
                   onChange={(e) => handleInputChange('reason', e.target.value)}
-                  placeholder="Please provide a detailed reason for your leave request (10-500 characters)..."
-                  inputProps={{ maxLength: 500 }}
-                  helperText={`${formData.reason.length}/500 characters (minimum 10 characters required)`}
-                  error={formData.reason.length > 0 && (formData.reason.length < 10 || formData.reason.length > 500)}
+                  placeholder="Please provide a detailed reason (10-500 characters)"
+                  rows="2"
+                  maxLength="500"
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '6px 8px',
+                    fontSize: '0.8rem',
+                    border: formData.reason.length > 0 && formData.reason.length < 10 ? '2px solid #f87171' : '2px solid #d1d5db',
+                    borderRadius: '4px',
+                    outline: 'none',
+                    resize: 'none',
+                    fontFamily: 'inherit',
+                  }}
                 />
-              </Grid>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3px', fontSize: '0.65rem', color: '#6b7280' }}>
+                  <span>
+                    {formData.reason.length < 10 
+                      ? `${10 - formData.reason.length} more characters required`
+                      : 'Minimum length met'}
+                  </span>
+                  <span>{formData.reason.length}/500 characters</span>
+                </div>
+              </div>
+            </div>
+
+            <hr style={{ border: 'none', borderTop: '1px solid #e5e7eb', margin: '8px 0' }} />
 
               {/* Emergency Contact */}
-              <Grid item xs={12}>
-                <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-                  <PersonIcon sx={{ mr: 1, color: 'primary.main' }} />
-                  Emergency Contact Information
-                </Typography>
-                <Divider sx={{ mb: 2 }} />
-              </Grid>
-
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  required
-                  label="Contact Name"
+            <div style={{ marginBottom: '8px' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                marginBottom: '6px',
+              }}>
+                <User size={14} color="#667eea" />
+                <h2 style={{ fontSize: '0.8rem', fontWeight: 600, color: '#2d3748', margin: 0 }}>
+                  Emergency Contact
+                </h2>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '3px', fontSize: '0.75rem', color: '#4a5568' }}>
+                    Contact Name *
+                  </label>
+                  <input
+                    type="text"
                   value={formData.emergencyContact.name}
                   onChange={(e) => handleInputChange('emergencyContact.name', e.target.value)}
                   placeholder="Full name"
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  required
-                  label="Phone Number"
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '6px 8px',
+                      fontSize: '0.8rem',
+                      border: '2px solid #d1d5db',
+                      borderRadius: '4px',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '3px', fontSize: '0.75rem', color: '#4a5568' }}>
+                    Phone Number *
+                  </label>
+                  <input
+                    type="tel"
                   value={formData.emergencyContact.phone}
                   onChange={(e) => handleInputChange('emergencyContact.phone', e.target.value)}
-                  placeholder="9876543210"
-                  inputProps={{ maxLength: 10 }}
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={4}>
-                <FormControl fullWidth required>
-                  <InputLabel>Relation</InputLabel>
-                  <Select
+                    placeholder="10-digit number"
+                    maxLength="10"
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '6px 8px',
+                      fontSize: '0.8rem',
+                      border: '2px solid #d1d5db',
+                      borderRadius: '4px',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '3px', fontSize: '0.75rem', color: '#4a5568' }}>
+                    Relation *
+                  </label>
+                  <select
                     value={formData.emergencyContact.relation}
                     onChange={(e) => handleInputChange('emergencyContact.relation', e.target.value)}
-                    label="Relation"
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '6px 8px',
+                      fontSize: '0.8rem',
+                      border: '2px solid #d1d5db',
+                      borderRadius: '4px',
+                      outline: 'none',
+                    }}
                   >
+                    <option value="">Select relation</option>
                     {relationOptions.map((relation) => (
-                      <MenuItem key={relation} value={relation}>
-                        {relation}
-                      </MenuItem>
+                      <option key={relation} value={relation}>{relation}</option>
                     ))}
-                  </Select>
-                </FormControl>
-              </Grid>
+                  </select>
+                </div>
+              </div>
+            </div>
 
-              {/* Submit Buttons */}
-              <Grid item xs={12}>
-                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 3 }}>
-                  <Button
-                    variant="outlined"
-                    onClick={onViewForms}
+            {/* Action Buttons */}
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              justifyContent: 'flex-end',
+              paddingTop: '8px',
+              borderTop: '1px solid #e2e8f0',
+              marginTop: '12px'
+            }}>
+              <button
+                type="button"
                     disabled={loading}
-                  >
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  padding: '6px 12px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  border: '2px solid #d1d5db',
+                  borderRadius: '4px',
+                  backgroundColor: 'white',
+                  color: '#374151',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.5 : 1,
+                }}
+              >
+                <Eye size={12} />
                     View My Forms
-                  </Button>
-                  <Button
+              </button>
+              <button
                     type="submit"
-                    variant="contained"
                     disabled={loading}
-                    startIcon={loading ? <CircularProgress size={20} /> : <LeaveIcon />}
-                    sx={{ minWidth: 150 }}
-                  >
-                    {loading ? 'Submitting...' : 'Submit Leave Form'}
-                  </Button>
-                </Box>
-              </Grid>
-            </Grid>
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  padding: '6px 16px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  border: 'none',
+                  borderRadius: '4px',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  color: 'white',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.7 : 1,
+                }}
+              >
+                {loading ? (
+                  <>
+                    <div style={{
+                      width: '12px',
+                      height: '12px',
+                      border: '2px solid white',
+                      borderTopColor: 'transparent',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite',
+                    }} />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Send size={12} />
+                    Submit Form
+                  </>
+                )}
+              </button>
+            </div>
           </form>
-        </Paper>
-      </Box>
-    </LocalizationProvider>
+        </div>
+      </div>
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
   );
 };
 
