@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
   Box,
@@ -13,6 +13,8 @@ import {
   Avatar,
   Divider,
   Grid,
+  Switch,
+  FormControlLabel,
 } from '@mui/material';
 import {
   QrCodeScanner as QrScannerIcon,
@@ -22,6 +24,8 @@ import {
   Person as PersonIcon,
   School as SchoolIcon,
   LocationOn as LocationIcon,
+  CameraAlt as CameraIcon,
+  Keyboard as KeyboardIcon,
 } from '@mui/icons-material';
 import { guardAPI } from '../../services/api';
 
@@ -32,9 +36,65 @@ const QRScanner = ({ user }) => {
   const [success, setSuccess] = useState('');
   const [scanResult, setScanResult] = useState(null);
   const [remarks, setRemarks] = useState('');
+  const [useCamera, setUseCamera] = useState(false); // Start with manual mode to avoid camera issues
+  const [cameraError, setCameraError] = useState(false);
+  const [cameraStream, setCameraStream] = useState(null);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const scanningInterval = useRef(null);
 
-  const handleScan = async () => {
-    if (!qrToken.trim()) {
+  // Simple camera initialization
+  useEffect(() => {
+    if (useCamera && !cameraError) {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+
+    return () => {
+      stopCamera();
+    };
+  }, [useCamera, cameraError]);
+
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 640 },
+          height: { ideal: 480 }
+        } 
+      });
+      
+      setCameraStream(stream);
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+    } catch (err) {
+      console.error('Camera access error:', err);
+      setCameraError(true);
+      setError('Camera access denied. Please use manual entry mode.');
+    }
+  };
+
+  const stopCamera = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      setCameraStream(null);
+    }
+    
+    if (scanningInterval.current) {
+      clearInterval(scanningInterval.current);
+      scanningInterval.current = null;
+    }
+  };
+
+  const handleScan = async (token = null) => {
+    const tokenToUse = token || qrToken;
+    
+    if (!tokenToUse.trim()) {
       setError('Please enter a QR token to scan');
       return;
     }
@@ -46,15 +106,21 @@ const QRScanner = ({ user }) => {
 
     try {
       const response = await guardAPI.scanPass({
-        token: qrToken.trim(),
+        token: tokenToUse.trim(),
         remarks: remarks.trim() || undefined,
       });
 
       if (response.data.success) {
-        setSuccess('QR pass processed successfully!');
+        setSuccess(response.data.message || 'QR pass processed successfully!');
         setScanResult(response.data.data);
         setQrToken('');
         setRemarks('');
+        
+        // Stop camera scanner after successful scan
+        if (scanner) {
+          scanner.clear();
+          setScanner(null);
+        }
       } else {
         setError(response.data.message || 'Failed to process QR pass');
       }
@@ -78,6 +144,21 @@ const QRScanner = ({ user }) => {
     setScanResult(null);
   };
 
+  const handleRestartScanner = () => {
+    stopCamera();
+    setError('');
+    setSuccess('');
+    setScanResult(null);
+    setCameraError(false);
+    
+    // Restart camera
+    if (useCamera) {
+      setTimeout(() => {
+        startCamera();
+      }, 100);
+    }
+  };
+
   const formatDateTime = (dateString) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleString('en-IN', {
@@ -98,7 +179,15 @@ const QRScanner = ({ user }) => {
   };
 
   return (
-    <Box sx={{ maxWidth: '800px', margin: '0 auto' }}>
+    <Box sx={{ maxWidth: '1000px', margin: '0 auto' }}>
+      <style>
+        {`
+          @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+          }
+        `}
+      </style>
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h4" sx={{ fontWeight: 700, color: '#1f2937', mb: 1 }}>
@@ -109,13 +198,44 @@ const QRScanner = ({ user }) => {
         </Typography>
       </Box>
 
+      {/* Scanner Mode Toggle */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+            <KeyboardIcon color={!useCamera ? 'primary' : 'disabled'} />
+             <FormControlLabel
+               control={
+                 <Switch
+                   checked={useCamera && !cameraError}
+                   onChange={(e) => {
+                     if (e.target.checked) {
+                       if (cameraError) {
+                         setCameraError(false);
+                         setError('');
+                       }
+                       setUseCamera(true);
+                     } else {
+                       setUseCamera(false);
+                       stopCamera();
+                     }
+                   }}
+                   color="primary"
+                 />
+               }
+               label={cameraError ? "Camera Scanner (Error - Click to retry)" : "Camera Scanner"}
+             />
+            <CameraIcon color={useCamera ? 'primary' : 'disabled'} />
+          </Box>
+        </CardContent>
+      </Card>
+
       <Grid container spacing={3}>
         {/* Scanner Input */}
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={useCamera ? 6 : 12}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 3, color: '#1f2937' }}>
-                Scan QR Code
+                {useCamera ? 'Manual Entry' : 'Scan QR Code'}
               </Typography>
 
               {/* Error Alert */}
@@ -203,8 +323,133 @@ const QRScanner = ({ user }) => {
           </Card>
         </Grid>
 
+        {/* Camera Scanner */}
+        {useCamera && (
+          <Grid item xs={12} md={6}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ fontWeight: 600, mb: 3, color: '#1f2937' }}>
+                  Camera Scanner
+                </Typography>
+                 <Box
+                   sx={{
+                     width: '100%',
+                     minHeight: '300px',
+                     display: 'flex',
+                     alignItems: 'center',
+                     justifyContent: 'center',
+                     backgroundColor: '#f8fafc',
+                     borderRadius: 2,
+                     border: '2px dashed #d1d5db',
+                     position: 'relative',
+                     overflow: 'hidden',
+                   }}
+                 >
+                   {cameraError ? (
+                     <Box sx={{ textAlign: 'center', color: '#ef4444' }}>
+                       <XIcon sx={{ fontSize: 48, mb: 2 }} />
+                       <Typography variant="body2" sx={{ mb: 2 }}>
+                         Camera access denied or not available
+                       </Typography>
+                       <Typography variant="caption" sx={{ color: '#6b7280', mb: 2, display: 'block' }}>
+                         Please use manual entry mode or allow camera access
+                       </Typography>
+                       <Button
+                         variant="outlined"
+                         onClick={handleRestartScanner}
+                         size="small"
+                         sx={{
+                           borderColor: '#ef4444',
+                           color: '#ef4444',
+                           '&:hover': {
+                             borderColor: '#dc2626',
+                             backgroundColor: '#fef2f2',
+                           },
+                         }}
+                       >
+                         Retry Camera
+                       </Button>
+                     </Box>
+                   ) : !cameraStream ? (
+                     <Box sx={{ textAlign: 'center', color: '#6b7280' }}>
+                       <CameraIcon sx={{ fontSize: 48, mb: 2 }} />
+                       <Typography variant="body2">
+                         {useCamera ? 'Initializing camera...' : 'Camera not active'}
+                       </Typography>
+                     </Box>
+                   ) : (
+                     <Box sx={{ width: '100%', height: '100%', position: 'relative' }}>
+                       <video
+                         ref={videoRef}
+                         autoPlay
+                         playsInline
+                         muted
+                         style={{
+                           width: '100%',
+                           height: '100%',
+                           objectFit: 'cover',
+                           borderRadius: '8px',
+                         }}
+                       />
+                       <Box
+                         sx={{
+                           position: 'absolute',
+                           top: '50%',
+                           left: '50%',
+                           transform: 'translate(-50%, -50%)',
+                           width: '200px',
+                           height: '200px',
+                           border: '2px solid #3b82f6',
+                           borderRadius: '8px',
+                           pointerEvents: 'none',
+                           '&::before': {
+                             content: '""',
+                             position: 'absolute',
+                             top: '-2px',
+                             left: '-2px',
+                             right: '-2px',
+                             bottom: '-2px',
+                             border: '2px solid rgba(59, 130, 246, 0.3)',
+                             borderRadius: '8px',
+                             animation: 'pulse 2s infinite',
+                           },
+                         }}
+                       />
+                       <canvas
+                         ref={canvasRef}
+                         style={{ display: 'none' }}
+                       />
+                     </Box>
+                   )}
+                 </Box>
+                <Typography variant="caption" sx={{ color: '#6b7280', mt: 2, display: 'block', textAlign: 'center' }}>
+                  Point camera at QR code to scan automatically
+                </Typography>
+                <Box sx={{ mt: 2, textAlign: 'center' }}>
+                  <Button
+                    variant="outlined"
+                    onClick={handleRestartScanner}
+                    startIcon={<RefreshIcon />}
+                    size="small"
+                    sx={{
+                      borderColor: '#3b82f6',
+                      color: '#3b82f6',
+                      '&:hover': {
+                        borderColor: '#2563eb',
+                        backgroundColor: '#eff6ff',
+                      },
+                    }}
+                  >
+                    Restart Scanner
+                  </Button>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
+
         {/* Scan Result */}
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={useCamera ? 12 : 6}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 3, color: '#1f2937' }}>
@@ -283,7 +528,7 @@ const QRScanner = ({ user }) => {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                         <CheckIcon sx={{ color: '#10b981', fontSize: 20 }} />
                         <Typography variant="body2" sx={{ fontWeight: 600, color: '#1f2937' }}>
-                          Successfully Processed
+                          {scanResult.case === 'A' ? 'Student Exited' : 'Student Entered'}
                         </Typography>
                       </Box>
                       <Typography variant="caption" sx={{ color: '#6b7280' }}>

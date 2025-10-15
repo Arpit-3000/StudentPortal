@@ -13,24 +13,54 @@ const GatePass = () => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [gateStatus, setGateStatus] = useState(null);
   const [studentInfo, setStudentInfo] = useState(null);
+  const [currentStudentStatus, setCurrentStudentStatus] = useState(null);
 
   const destinationOptions = [
-    'Library',
-    'Canteen',
-    'Sports Complex',
-    'Computer Lab',
-    'Physics Lab',
-    'Chemistry Lab',
-    'Mathematics Department',
-    'Administrative Office',
-    'Hostel',
-    'Parking Area',
-    'Other'
+   
+    'Una City',
+    'HPMC',
+    'Jaijon Morh',
+    'Home',
+    'Gym',
+    'Music Room',
+    'Dance Room',
+    'Transit House',
+    'Other',
   ];
 
   useEffect(() => {
     fetchGateStatus();
   }, []);
+
+  // Check if QR was processed and remove from UI
+  useEffect(() => {
+    if (qrCode && qrToken) {
+      const checkQRStatus = async () => {
+        try {
+          // Check if QR is still valid by trying to get current status
+          const response = await studentAPI.getGateStatus();
+          if (response.data.success) {
+            const newStatus = response.data.data.currentStatus;
+            // If status changed, QR was processed
+            if (currentStudentStatus && newStatus !== currentStudentStatus) {
+              setQrCode(null);
+              setQrToken(null);
+              setQrExpiry(null);
+              setTimeLeft(0);
+              setSuccess('QR code processed successfully! Your status has been updated.');
+              setCurrentStudentStatus(newStatus);
+            }
+          }
+        } catch (err) {
+          console.error('Error checking QR status:', err);
+        }
+      };
+
+      // Check every 5 seconds if QR was processed
+      const interval = setInterval(checkQRStatus, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [qrCode, qrToken, currentStudentStatus]);
 
   useEffect(() => {
     let interval = null;
@@ -50,6 +80,7 @@ const GatePass = () => {
       const response = await studentAPI.getGateStatus();
       if (response.data.success) {
         setGateStatus(response.data.data);
+        setCurrentStudentStatus(response.data.data.currentStatus);
       }
     } catch (err) {
       console.error('Failed to fetch gate status:', err);
@@ -58,8 +89,9 @@ const GatePass = () => {
 
   const handleGenerateQR = async (e) => {
     e.preventDefault();
-    if (!destination.trim()) {
-      setError('Please select a destination');
+    // Only require destination for exit (when student is IN)
+    if (currentStudentStatus === 'in' && !destination.trim()) {
+      setError('Please select a destination for exit');
       return;
     }
 
@@ -76,8 +108,13 @@ const GatePass = () => {
         setQrToken(data.token);
         setQrExpiry(data.expiresAt);
         setStudentInfo(data.studentInfo);
-        setTimeLeft(300); // 5 minutes in seconds
-        setSuccess('Gate pass generated successfully!');
+        setTimeLeft(600); // 10 minutes in seconds
+        setSuccess(data.message || 'Gate pass generated successfully!');
+        
+        // Refresh student status after generating QR
+        setTimeout(() => {
+          fetchGateStatus();
+        }, 1000);
       } else {
         setError(response.data.message || 'Failed to generate gate pass');
       }
@@ -226,36 +263,77 @@ const GatePass = () => {
         )}
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-          {/* Generate QR Form */}
+        {/* Generate QR Form */}
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+          padding: '20px',
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
           <div style={{
-            backgroundColor: 'white',
-            borderRadius: '8px',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-            padding: '20px',
             display: 'flex',
-            flexDirection: 'column'
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '16px',
           }}>
+            <MapPin size={18} color="#3b82f6" />
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#2d3748', margin: 0 }}>
+              {currentStudentStatus === 'out' ? 'Generate Entry Pass' : 'Generate Exit Pass'}
+            </h2>
+          </div>
+
+          {/* Student Status Alert */}
+          {currentStudentStatus && (
             <div style={{
+              padding: '12px 16px',
+              backgroundColor: currentStudentStatus === 'out' ? '#fef2f2' : '#f0f9ff',
+              border: `1px solid ${currentStudentStatus === 'out' ? '#fecaca' : '#bfdbfe'}`,
+              borderRadius: '6px',
+              marginBottom: '16px',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              marginBottom: '16px',
+              gap: '8px'
             }}>
-              <MapPin size={18} color="#3b82f6" />
-              <h2 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#2d3748', margin: 0 }}>
-                Generate Gate Pass
-              </h2>
+              {currentStudentStatus === 'out' ? (
+                <>
+                  <XCircle size={16} color="#dc2626" />
+                  <div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#dc2626', marginBottom: '2px' }}>
+                      You are currently OUTSIDE campus
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#7f1d1d' }}>
+                      Generate a QR code to enter the campus.
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <CheckCircle size={16} color="#10b981" />
+                  <div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#10b981', marginBottom: '2px' }}>
+                      You are currently INSIDE campus
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#065f46' }}>
+                      Generate a QR code to exit the campus.
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
+          )}
 
             <form onSubmit={handleGenerateQR} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
                 <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.9rem', color: '#4a5568', fontWeight: 600 }}>
-                  Destination *
+                  {currentStudentStatus === 'out' ? 'Coming From (Optional)' : 'Destination *'}
                 </label>
                 <select
                   value={destination}
                   onChange={(e) => setDestination(e.target.value)}
-                  required
+                  required={currentStudentStatus === 'in'}
+                  disabled={false}
                   style={{
                     width: '100%',
                     padding: '12px 16px',
@@ -265,9 +343,11 @@ const GatePass = () => {
                     outline: 'none',
                     backgroundColor: 'white',
                     transition: 'border-color 0.2s',
+                    cursor: 'pointer',
+                    opacity: 1,
                   }}
                 >
-                  <option value="">Select destination</option>
+                  <option value="">{currentStudentStatus === 'out' ? 'Select where you\'re coming from (optional)' : 'Select destination'}</option>
                   {destinationOptions.map((option) => (
                     <option key={option} value={option}>{option}</option>
                   ))}
@@ -276,7 +356,7 @@ const GatePass = () => {
 
               <button
                 type="submit"
-                disabled={loading || !destination.trim()}
+                disabled={loading || (currentStudentStatus === 'in' && !destination.trim())}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -287,12 +367,12 @@ const GatePass = () => {
                   fontWeight: 600,
                   border: 'none',
                   borderRadius: '6px',
-                  background: loading || !destination.trim() 
+                  background: loading || (currentStudentStatus === 'in' && !destination.trim())
                     ? '#9ca3af' 
                     : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
                   color: 'white',
-                  cursor: loading || !destination.trim() ? 'not-allowed' : 'pointer',
-                  opacity: loading || !destination.trim() ? 0.7 : 1,
+                  cursor: loading || (currentStudentStatus === 'in' && !destination.trim()) ? 'not-allowed' : 'pointer',
+                  opacity: loading || (currentStudentStatus === 'in' && !destination.trim()) ? 0.7 : 1,
                 }}
               >
                 {loading ? (
@@ -310,7 +390,7 @@ const GatePass = () => {
                 ) : (
                   <>
                     <QrCode size={16} />
-                    Generate QR Code
+                    Generate {currentStudentStatus === 'out' ? 'Entry' : 'Exit'} QR Code
                   </>
                 )}
               </button>
@@ -406,7 +486,7 @@ const GatePass = () => {
                   No QR Code Generated
                 </h3>
                 <p style={{ fontSize: '0.9rem', margin: 0 }}>
-                  Select a destination and generate a QR code to access the campus
+                  Select a destination and generate a QR code to {currentStudentStatus === 'out' ? 'enter' : 'exit'} the campus
                 </p>
               </div>
             )}
@@ -422,84 +502,141 @@ const GatePass = () => {
           marginTop: '16px'
         }}>
           <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '12px', margin: '0 0 12px 0', color: '#2d3748' }}>
-            How to use Gate Pass
+            {currentStudentStatus === 'out' ? 'How to Enter Campus' : 'How to Exit Campus'}
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <div style={{
-                width: '32px',
-                height: '32px',
-                backgroundColor: '#3b82f6',
-                color: 'white',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '0.9rem',
-                fontWeight: 600,
-                flexShrink: 0
-              }}>
-                1
-              </div>
-              <div>
-                <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                  Select Destination
+            {currentStudentStatus === 'out' ? (
+              <>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    backgroundColor: '#ef4444',
+                    color: 'white',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    flexShrink: 0
+                  }}>
+                    1
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
+                      Generate QR Code
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                      Click generate to create your entry pass
+                    </div>
+                  </div>
                 </div>
-                <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
-                  Choose where you're going on campus
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    backgroundColor: '#ef4444',
+                    color: 'white',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    flexShrink: 0
+                  }}>
+                    2
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
+                      Show to Guard
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                      Present the QR code to the security guard
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <div style={{
-                width: '32px',
-                height: '32px',
-                backgroundColor: '#3b82f6',
-                color: 'white',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '0.9rem',
-                fontWeight: 600,
-                flexShrink: 0
-              }}>
-                2
-              </div>
-              <div>
-                <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                  Generate QR Code
+              </>
+            ) : (
+              <>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    flexShrink: 0
+                  }}>
+                    1
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
+                      Select Destination
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                      Choose where you're going outside campus
+                    </div>
+                  </div>
                 </div>
-                <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
-                  Click generate to create your gate pass
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    flexShrink: 0
+                  }}>
+                    2
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
+                      Generate QR Code
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                      Click generate to create your exit pass
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <div style={{
-                width: '32px',
-                height: '32px',
-                backgroundColor: '#3b82f6',
-                color: 'white',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '0.9rem',
-                fontWeight: 600,
-                flexShrink: 0
-              }}>
-                3
-              </div>
-              <div>
-                <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                  Show to Guard
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    flexShrink: 0
+                  }}>
+                    3
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
+                      Show to Guard
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                      Present the QR code to the security guard
+                    </div>
+                  </div>
                 </div>
-                <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
-                  Present the QR code to the security guard
-                </div>
-              </div>
-            </div>
+              </>
+            )}
           </div>
         </div>
       </div>
