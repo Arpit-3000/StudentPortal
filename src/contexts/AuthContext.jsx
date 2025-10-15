@@ -38,9 +38,6 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authAPI.verifyOTP(email, otp, userRole);
       
-      // Debug logging to understand the response structure
-      console.log('API Response:', response);
-      console.log('Response Data:', response?.data);
       
       // Handle the actual API response structure with proper error checking
       if (!response || !response.data) {
@@ -52,58 +49,43 @@ export const AuthProvider = ({ children }) => {
         throw new Error('No data received from server');
       }
       
-      console.log('Extracted Data:', data);
-      
       // Handle different possible response structures based on role
       let token, userData;
-      
-      console.log('Parsing response for role:', userRole);
       
       // Try different possible response structures
       if (data.token && data.user) {
         token = data.token;
         userData = data.user;
-        console.log('Found user data in data.user');
       } else if (data.token && data.student) {
         token = data.token;
         userData = data.student;
-        console.log('Found student data in data.student');
       } else if (data.token && data.teacher) {
         token = data.token;
         userData = data.teacher;
-        console.log('Found teacher data in data.teacher');
       } else if (data.token && data.admin) {
         token = data.token;
         userData = data.admin;
-        console.log('Found admin data in data.admin');
       } else if (data.token && data.accountant) {
         token = data.token;
         userData = data.accountant;
-        console.log('Found accountant data in data.accountant');
       } else if (data.token) {
         token = data.token;
         userData = data; // Use the entire data object as user data
-        console.log('Using entire data object as user data');
       } else {
         // Fallback: try to extract from the response structure
         token = data.token || data.accessToken || data.authToken;
         userData = data.user || data.student || data.teacher || data.admin || data.accountant || data;
-        console.log('Using fallback extraction method');
       }
       
       // Additional role-specific parsing
       if (userRole === 'student' && data.student) {
         userData = data.student;
-        console.log('Overriding with student-specific data');
       } else if (userRole === 'teacher' && data.teacher) {
         userData = data.teacher;
-        console.log('Overriding with teacher-specific data');
       } else if (['super_admin', 'moderator', 'staff'].includes(userRole) && data.admin) {
         userData = data.admin;
-        console.log('Overriding with admin-specific data');
       } else if (userRole === 'accountant' && data.accountant) {
         userData = data.accountant;
-        console.log('Overriding with accountant-specific data');
       }
       
       // Check if token exists
@@ -114,10 +96,8 @@ export const AuthProvider = ({ children }) => {
       // Check if userData exists, if not create a basic user object
       const safeUserData = userData || {};
       
-      console.log('Token:', token);
-      console.log('UserData:', userData);
-      console.log('SafeUserData:', safeUserData);
-      console.log('Selected UserRole:', userRole);
+      // Define non-teaching roles at the function scope
+      const nonTeachingRoles = ['hostel_warden', 'security_head', 'security_guard', 'attendant', 'caretaker', 'administrative_staff', 'clerk', 'receptionist', 'maintenance_staff', 'cleaner', 'other'];
       
       // Determine the actual role from backend response
       let actualRole = userRole; // Default to selected role
@@ -136,6 +116,7 @@ export const AuthProvider = ({ children }) => {
           'Hostel Warden': 'hostel_warden',
           'Security Head': 'security_head',
           'Security Guard': 'security_guard',
+          'Guard': 'security_guard', // Handle case where backend returns 'Guard' instead of 'Security Guard'
           'Attendant': 'attendant',
           'Caretaker': 'caretaker',
           'Administrative Staff': 'administrative_staff',
@@ -149,15 +130,10 @@ export const AuthProvider = ({ children }) => {
         // Get the mapped role or use the original role
         actualRole = roleMapping[safeUserData.role] || safeUserData.role.toLowerCase();
         
-        console.log('Backend role:', safeUserData.role);
-        console.log('Mapped role:', actualRole);
-        console.log('Selected role:', userRole);
-        
         // Check if the selected role matches the backend role
-        // For non-teaching staff, we need to check if the user selected nonteaching and backend returned a non-teaching role
-        if (userRole === 'nonteaching') {
+        // For non-teaching staff, we need to check if the user selected a non-teaching role and backend returned a non-teaching role
+        if (nonTeachingRoles.includes(userRole)) {
           // For non-teaching staff, any non-teaching role from backend is valid
-          const nonTeachingRoles = ['hostel_warden', 'security_head', 'security_guard', 'attendant', 'caretaker', 'administrative_staff', 'clerk', 'receptionist', 'maintenance_staff', 'cleaner', 'other'];
           if (!nonTeachingRoles.includes(actualRole)) {
             return { 
               success: false, 
@@ -175,10 +151,9 @@ export const AuthProvider = ({ children }) => {
       
       // For non-teaching staff, use the role from the database
       let finalRole = actualRole;
-      if (userRole === 'nonteaching' && safeUserData.role) {
+      if ((userRole === 'nonteaching' || nonTeachingRoles.includes(userRole)) && safeUserData.role) {
         // Use the role from the database (already mapped above)
         finalRole = actualRole;
-        console.log('Non-teaching staff role from database:', safeUserData.role, 'Mapped to:', finalRole);
       }
 
       // Create user object with the determined role
@@ -236,7 +211,6 @@ export const AuthProvider = ({ children }) => {
 
   const sendOTP = async (email, role = null, teacherId = null, staffId = null, nonTeachingRole = null) => {
     try {
-      console.log('Sending OTP to:', email, 'Role:', role, 'Teacher ID:', teacherId, 'Staff ID:', staffId, 'Non-teaching Role:', nonTeachingRole);
       
       // Prepare request data based on role
       let requestData = { email };
@@ -252,15 +226,6 @@ export const AuthProvider = ({ children }) => {
       }
       
       const response = await authAPI.sendOTP(requestData);
-      console.log('OTP sent successfully:', response);
-      
-      // Handle different response structures
-      if (response.data) {
-        // Check if response contains role-specific data
-        if (response.data.student || response.data.teacher || response.data.admin || response.data.accountant) {
-          console.log('Role-specific response received:', response.data);
-        }
-      }
       
       return { success: true, data: response.data };
     } catch (error) {

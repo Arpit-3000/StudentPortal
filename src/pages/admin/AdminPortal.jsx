@@ -84,7 +84,6 @@ const AdminPortal = () => {
         const profileResult = await fetchUserProfile();
         if (profileResult.success) {
           setAdminProfile(profileResult.data);
-          console.log('Admin profile loaded:', profileResult.data);
         } else {
           console.error('Failed to load admin profile:', profileResult.error);
         }

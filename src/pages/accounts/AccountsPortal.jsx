@@ -78,7 +78,6 @@ const AccountsPortal = () => {
         const api = getRoleBasedAPI();
         const response = await api.getAccountStatistics();
         setAccountStats(response.data);
-        console.log('Account statistics loaded:', response.data);
       } catch (error) {
         console.error('Error loading account data:', error);
       } finally {

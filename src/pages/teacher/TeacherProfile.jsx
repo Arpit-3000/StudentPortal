@@ -54,14 +54,10 @@ const TeacherProfile = ({ onBack }) => {
     try {
       setLoading(true);
       setError('');
-      console.log('Fetching teacher profile...');
-      
       // Check if auth token exists
       const token = localStorage.getItem('authToken');
-      console.log('Auth token exists:', !!token);
       
       const response = await teacherAPI.getProfile();
-      console.log('Teacher profile response:', response);
       
       // Handle the API response structure: { success, message, data: { teacher } }
       if (response.data && response.data.data && response.data.data.teacher) {

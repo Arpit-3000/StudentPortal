@@ -154,13 +154,6 @@ const LoginPage = () => {
     setLoading(true);
     setError('');
 
-    console.log('LoginPage - Sending OTP with:', {
-      email: email,
-      role: selectedUserType,
-      teacherId: teacherId,
-      staffId: staffId,
-      nonTeachingRole: selectedNonTeachingRole
-    });
 
     const result = await sendOTP(email, selectedUserType, teacherId, staffId, selectedNonTeachingRole);
     
@@ -188,10 +181,13 @@ const LoginPage = () => {
     setLoading(true);
     setError('');
 
-    // Determine the final role (admin sub-role if admin is selected)
-    // Note: The backend will validate this role against the user's actual role
-    const finalRole = selectedUserType === 'admin' ? selectedAdminSubRole : selectedUserType;
-    console.log('Attempting login with role:', finalRole, 'for email:', email);
+    // Determine the final role (admin sub-role if admin is selected, non-teaching role if non-teaching is selected)
+    let finalRole = selectedUserType;
+    if (selectedUserType === 'admin') {
+      finalRole = selectedAdminSubRole;
+    } else if (selectedUserType === 'nonteaching') {
+      finalRole = selectedNonTeachingRole; // Send the specific non-teaching role (e.g., 'security_guard')
+    }
     const result = await login(email, otp, finalRole);
     
     if (result.success) {
@@ -221,28 +217,6 @@ const LoginPage = () => {
 //   }
 
 //   setLoading(true);
-//   setError('');
-
-//   // Format role correctly for backend
-//   let finalRole = selectedUserType.toLowerCase();
-//   if (selectedUserType === 'admin' && selectedAdminSubRole) {
-//     finalRole = selectedAdminSubRole.toLowerCase().replace(' ', '_'); // super_admin, moderator, staff
-//   }
-
-//   console.log('Attempting login with role:', finalRole, 'for email:', email);
-//   const result = await login(email, otp, finalRole);
-
-//   if (result.success) {
-//     setError('');
-//     navigate('/dashboard');
-//   } else {
-//     const errorMessage = result.error || 'Login failed. Please try again.';
-//     setError(errorMessage);
-//     console.error('Login failed:', result.error);
-//   }
-
-//   setLoading(false);
-// };
 
 
   const handleBack = () => {

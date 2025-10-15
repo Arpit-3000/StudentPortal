@@ -53,9 +53,7 @@ const AccountsProfile = ({ onBack }) => {
     try {
       setLoading(true);
       setError('');
-      console.log('Fetching accountant profile...');
       const response = await accountAPI.getProfile();
-      console.log('Accountant profile response:', response);
       
       // Handle the API response structure: { success, message, data: { accountant } }
       if (response.data && response.data.data && response.data.data.accountant) {

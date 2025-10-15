@@ -85,7 +85,6 @@ const TeacherPortal = () => {
           // Handle the API response structure: { success, message, data: { teacher } }
           const teacherData = profileResult.data.data?.teacher || profileResult.data.teacher || profileResult.data;
           setTeacherProfile(teacherData);
-          console.log('Teacher profile loaded:', teacherData);
         } else {
           console.error('Failed to load teacher profile:', profileResult.error);
         }

@@ -54,9 +54,7 @@ const AdminProfile = ({ onBack }) => {
     try {
       setLoading(true);
       setError('');
-      console.log('Fetching admin profile...');
       const response = await adminAPI.getProfile();
-      console.log('Admin profile response:', response);
       
       // Handle the API response structure: { success, message, data: { admin } }
       if (response.data && response.data.data && response.data.data.admin) {

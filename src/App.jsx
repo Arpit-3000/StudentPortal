@@ -9,6 +9,7 @@ import TeacherPortal from './pages/teacher/TeacherPortal';
 import AdminPortal from './pages/admin/AdminPortal';
 import AccountsPortal from './pages/accounts/AccountsPortal';
 import AttendantPortal from './pages/attendant/AttendantPortal';
+import GuardPortal from './pages/guard/GuardPortal';
 import PremiumLoadingSpinner from './components/PremiumLoadingSpinner';
 import ErrorBoundary from './components/ErrorBoundary';
 import theme from './theme';
@@ -51,33 +52,26 @@ function App() {
       return <Navigate to="/login" />;
     }
 
-    // Log the user role for debugging
-    console.log('User role:', user.role, 'User data:', user);
-    console.log('Email:', user.email, 'Original role:', user.originalRole);
 
     // Route based on user role
     switch (user.role) {
       case 'student':
-        console.log('Routing to Student Portal');
         return <StudentPortal />;
       case 'teacher':
-        console.log('Routing to Teacher Portal');
         return <TeacherPortal />;
       case 'admin':
       case 'super_admin':
       case 'moderator':
       case 'staff':
-        console.log('Routing to Admin Portal for role:', user.role);
         return <AdminPortal />;
       case 'accountant':
-        console.log('Routing to Accounts Portal');
         return <AccountsPortal />;
       case 'attendant':
-        console.log('Routing to Attendant Portal');
         return <AttendantPortal />;
+      case 'security_guard':
+        return <GuardPortal />;
       case 'hostel_warden':
       case 'security_head':
-      case 'security_guard':
       case 'caretaker':
       case 'administrative_staff':
       case 'clerk':
@@ -86,7 +80,6 @@ function App() {
       case 'cleaner':
       case 'other':
       case 'non_teaching':
-        console.log('Routing to Admin Portal for staff role:', user.role);
         return <AdminPortal />;
       default:
         console.error('Unknown user role:', user.role);

@@ -41,12 +41,9 @@ const AttendantProfile = ({ onBack }) => {
 
     try {
       const response = await nonTeachingAPI.getProfile();
-      console.log('Profile API Response:', response);
-      
       if (response.data.success) {
         // Handle different response structures
         const profile = response.data.data?.profile || response.data.data || response.data.user || response.data;
-        console.log('Profile Data:', profile);
         setProfileData(profile);
       } else {
         setError(response.data.message || 'Failed to fetch profile');
@@ -87,9 +84,6 @@ const AttendantProfile = ({ onBack }) => {
 
   const profile = profileData || user;
   
-  console.log('Current user from auth:', user);
-  console.log('Profile data from API:', profileData);
-  console.log('Final profile object:', profile);
 
   return (
     <Box sx={{ maxWidth: 800, mx: 'auto', p: 2 }}>

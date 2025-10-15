@@ -1,43 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  Grid,
-  Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  IconButton,
-  Pagination,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Alert,
-  CircularProgress,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  InputAdornment,
-} from '@mui/material';
-import {
-  EventNote as LeaveIcon,
-  Visibility as ViewIcon,
-  FilterList as FilterIcon,
-  Search as SearchIcon,
-  Refresh as RefreshIcon,
-  Add as AddIcon,
-  Delete as DeleteIcon,
-} from '@mui/icons-material';
+import { Home, Clock, User, Send, Eye, Search, RefreshCw, Plus, Trash2, Filter } from 'lucide-react';
 import { studentAPI } from '../../services/api';
 
 const MyLeaveForms = ({ onAddNew, onViewForm }) => {
@@ -179,255 +141,542 @@ const MyLeaveForms = ({ onAddNew, onViewForm }) => {
 
   if (loading && leaveForms.length === 0) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-        <CircularProgress />
-      </Box>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '400px',
+        background: 'linear-gradient(to bottom right, #f7fafc, #edf2f7)',
+        padding: '8px'
+      }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          border: '4px solid #667eea',
+          borderTopColor: 'transparent',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }} />
+      </div>
     );
   }
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto', p: 2 }}>
-      <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <LeaveIcon sx={{ fontSize: 32, color: 'primary.main', mr: 2 }} />
-            <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
-              My Leave Forms
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <Button
-              variant="outlined"
-              startIcon={<RefreshIcon />}
-              onClick={handleRefresh}
-              disabled={loading}
-            >
-              Refresh
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={onAddNew}
-            >
-              Apply New Leave
-            </Button>
-          </Box>
-        </Box>
+    <div style={{
+      minHeight: 'calc(100vh - 70px)',
+      background: 'linear-gradient(to bottom right, #f7fafc, #edf2f7)',
+      padding: '8px',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column' }}>
+        {/* Header */}
+        <div style={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          borderRadius: '8px',
+          padding: '16px 20px',
+          marginBottom: '16px',
+          color: 'white',
+          boxShadow: '0 4px 20px rgba(102, 126, 234, 0.3)',
+          flexShrink: 0
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              <div>
+                <h1 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '4px', margin: 0 }}>
+                  My Leave Forms
+                </h1>
+                <p style={{ fontSize: '0.9rem', opacity: 0.9, margin: 0 }}>
+                  View and manage your leave applications
+                </p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={handleRefresh}
+                disabled={loading}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 16px',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  border: '2px solid rgba(255, 255, 255, 0.3)',
+                  borderRadius: '6px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  color: 'white',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.5 : 1,
+                }}
+              >
+                <RefreshCw size={16} />
+                Refresh
+              </button>
+              <button
+                onClick={onAddNew}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 16px',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  border: 'none',
+                  borderRadius: '6px',
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  color: 'white',
+                  cursor: 'pointer',
+                }}
+              >
+                <Plus size={16} />
+                Apply New Leave
+              </button>
+            </div>
+          </div>
+        </div>
 
+        {/* Error Alert */}
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <div style={{
+            backgroundColor: '#fee',
+            border: '1px solid #fcc',
+            borderRadius: '8px',
+            padding: '16px',
+            marginBottom: '16px',
+            color: '#c00',
+          }}>
             {error}
-          </Alert>
+          </div>
         )}
 
         {/* Filters */}
-        <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
-          <TextField
-            placeholder="Search by reason..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-            }}
-            sx={{ minWidth: 250 }}
-          />
-          <FormControl sx={{ minWidth: 150 }}>
-            <InputLabel>Status</InputLabel>
-            <Select
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+          padding: '16px',
+          marginBottom: '16px',
+          display: 'flex',
+          gap: '12px',
+          flexWrap: 'wrap',
+          alignItems: 'center'
+        }}>
+          <div style={{ position: 'relative', flex: '1', minWidth: '250px' }}>
+            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#6b7280' }} />
+            <input
+              type="text"
+              placeholder="Search by reason..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 12px 10px 40px',
+                fontSize: '0.9rem',
+                border: '2px solid #d1d5db',
+                borderRadius: '6px',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+              }}
+            />
+          </div>
+          <div style={{ minWidth: '150px' }}>
+            <select
               value={filters.status}
               onChange={(e) => handleStatusFilter(e.target.value)}
-              label="Status"
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                fontSize: '0.9rem',
+                border: '2px solid #d1d5db',
+                borderRadius: '6px',
+                outline: 'none',
+                backgroundColor: 'white',
+              }}
             >
-              <MenuItem value="">All Status</MenuItem>
-              <MenuItem value="pending">Pending</MenuItem>
-              <MenuItem value="approved">Approved</MenuItem>
-              <MenuItem value="rejected">Rejected</MenuItem>
-              <MenuItem value="cancelled">Cancelled</MenuItem>
-            </Select>
-          </FormControl>
-        </Box>
+              <option value="">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+        </div>
 
-        {/* Leave Forms Table */}
-        <TableContainer component={Paper} variant="outlined">
-          <Table>
-            <TableHead>
-              <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-                <TableCell><strong>Form ID</strong></TableCell>
-                <TableCell><strong>Hostel & Room</strong></TableCell>
-                <TableCell><strong>Leave Period</strong></TableCell>
-                <TableCell><strong>Duration</strong></TableCell>
-                <TableCell><strong>Reason</strong></TableCell>
-                <TableCell><strong>Status</strong></TableCell>
-                <TableCell><strong>Submitted</strong></TableCell>
-                <TableCell><strong>Actions</strong></TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {leaveForms.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
-                    <Typography variant="body1" color="text.secondary">
-                      No leave forms found. {filters.status && `Try changing the status filter.`}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                leaveForms
-                  .filter(form => 
-                    !searchTerm || 
-                    form.reason.toLowerCase().includes(searchTerm.toLowerCase())
-                  )
-                  .map((form) => (
-                    <TableRow key={form.id} hover>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                          {form.id.slice(-8)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {form.hostelName}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          Room: {form.roomNumber}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {formatDate(form.exitDate)} - {formatDate(form.entryDate)}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {form.exitTime} - {form.entryTime}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={`${getDuration(form.exitDate, form.entryDate)} days`}
-                          size="small"
-                          color="primary"
-                          variant="outlined"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Typography 
-                          variant="body2" 
-                          sx={{ 
-                            maxWidth: 200, 
-                            overflow: 'hidden', 
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
+        {/* Leave Forms Cards */}
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+          padding: '16px',
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          {leaveForms.length === 0 ? (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '60px 20px',
+              color: '#6b7280'
+            }}>
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" style={{ marginBottom: '16px', opacity: 0.5 }}>
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '8px', margin: 0 }}>
+                No leave forms found
+              </h3>
+              <p style={{ fontSize: '0.9rem', margin: 0, textAlign: 'center' }}>
+                {filters.status ? 'Try changing the status filter.' : 'Start by applying for a new leave form.'}
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {leaveForms
+                .filter(form => 
+                  !searchTerm || 
+                  form.reason.toLowerCase().includes(searchTerm.toLowerCase())
+                )
+                .map((form) => (
+                  <div
+                    key={form.id}
+                    style={{
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      padding: '16px',
+                      backgroundColor: '#fafafa',
+                      transition: 'all 0.2s',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#f0f9ff';
+                      e.currentTarget.style.borderColor = '#667eea';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#fafafa';
+                      e.currentTarget.style.borderColor = '#e5e7eb';
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{
+                          padding: '4px 8px',
+                          backgroundColor: statusColors[form.status] === 'warning' ? '#fef3c7' : 
+                                          statusColors[form.status] === 'success' ? '#d1fae5' :
+                                          statusColors[form.status] === 'error' ? '#fee2e2' : '#f3f4f6',
+                          color: statusColors[form.status] === 'warning' ? '#92400e' : 
+                                 statusColors[form.status] === 'success' ? '#065f46' :
+                                 statusColors[form.status] === 'error' ? '#991b1b' : '#374151',
+                          borderRadius: '4px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px'
+                        }}>
+                          {statusLabels[form.status]}
+                        </div>
+                        <div style={{
+                          fontFamily: 'monospace',
+                          fontSize: '0.8rem',
+                          color: '#6b7280',
+                          backgroundColor: '#f3f4f6',
+                          padding: '2px 6px',
+                          borderRadius: '4px'
+                        }}>
+                          #{form.id.slice(-8)}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          onClick={() => onViewForm(form.id)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '6px 12px',
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            border: '2px solid #667eea',
+                            borderRadius: '4px',
+                            backgroundColor: 'white',
+                            color: '#667eea',
+                            cursor: 'pointer',
                           }}
                         >
-                          {form.reason}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={statusLabels[form.status]}
-                          color={statusColors[form.status]}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {formatDateTime(form.submittedAt)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          <IconButton
-                            size="small"
-                            onClick={() => onViewForm(form.id)}
-                            color="primary"
-                            title="View Details"
+                          <Eye size={14} />
+                          View
+                        </button>
+                        {form.status === 'pending' && (
+                          <button
+                            onClick={() => handleDeleteClick(form)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '6px 12px',
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
+                              border: '2px solid #ef4444',
+                              borderRadius: '4px',
+                              backgroundColor: 'white',
+                              color: '#ef4444',
+                              cursor: 'pointer',
+                            }}
                           >
-                            <ViewIcon />
-                          </IconButton>
-                          {form.status === 'pending' && (
-                            <IconButton
-                              size="small"
-                              onClick={() => handleDeleteClick(form)}
-                              color="error"
-                              title="Delete Form"
-                            >
-                              <DeleteIcon />
-                            </IconButton>
-                          )}
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                            <Trash2 size={14} />
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                    </div>
 
-        {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-            <Pagination
-              count={pagination.totalPages}
-              page={pagination.currentPage}
-              onChange={handlePageChange}
-              color="primary"
-              showFirstButton
-              showLastButton
-            />
-          </Box>
-        )}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '12px' }}>
+                      <div>
+                        <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '4px' }}>Hostel & Room</div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#374151' }}>
+                          {form.hostelName} - Room {form.roomNumber}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '4px' }}>Leave Period</div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#374151' }}>
+                          {formatDate(form.exitDate)} - {formatDate(form.entryDate)}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                          {form.exitTime} - {form.entryTime}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '4px' }}>Duration</div>
+                        <div style={{
+                          display: 'inline-block',
+                          padding: '2px 8px',
+                          backgroundColor: '#667eea',
+                          color: 'white',
+                          borderRadius: '4px',
+                          fontSize: '0.8rem',
+                          fontWeight: 600
+                        }}>
+                          {getDuration(form.exitDate, form.entryDate)} days
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '4px' }}>Submitted</div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#374151' }}>
+                          {formatDateTime(form.submittedAt)}
+                        </div>
+                      </div>
+                    </div>
 
-        {/* Summary */}
-        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="body2" color="text.secondary">
-            Showing {leaveForms.length} of {pagination.totalLeaveForms} forms
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Page {pagination.currentPage} of {pagination.totalPages}
-          </Typography>
-        </Box>
-      </Paper>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '4px' }}>Reason</div>
+                      <div style={{ 
+                        fontSize: '0.9rem', 
+                        color: '#374151',
+                        lineHeight: '1.4',
+                        maxHeight: '3em',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical'
+                      }}>
+                        {form.reason}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {pagination.totalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px', gap: '8px' }}>
+              <button
+                onClick={() => handlePageChange(null, pagination.currentPage - 1)}
+                disabled={!pagination.hasPrev}
+                style={{
+                  padding: '8px 12px',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  border: '2px solid #d1d5db',
+                  borderRadius: '6px',
+                  backgroundColor: 'white',
+                  color: '#374151',
+                  cursor: pagination.hasPrev ? 'pointer' : 'not-allowed',
+                  opacity: pagination.hasPrev ? 1 : 0.5,
+                }}
+              >
+                Previous
+              </button>
+              <span style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '8px 16px',
+                fontSize: '0.9rem',
+                color: '#6b7280'
+              }}>
+                Page {pagination.currentPage} of {pagination.totalPages}
+              </span>
+              <button
+                onClick={() => handlePageChange(null, pagination.currentPage + 1)}
+                disabled={!pagination.hasNext}
+                style={{
+                  padding: '8px 12px',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  border: '2px solid #d1d5db',
+                  borderRadius: '6px',
+                  backgroundColor: 'white',
+                  color: '#374151',
+                  cursor: pagination.hasNext ? 'pointer' : 'not-allowed',
+                  opacity: pagination.hasNext ? 1 : 0.5,
+                }}
+              >
+                Next
+              </button>
+            </div>
+          )}
+
+          {/* Summary */}
+          <div style={{ 
+            marginTop: '16px', 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            paddingTop: '16px',
+            borderTop: '1px solid #e5e7eb',
+            fontSize: '0.8rem',
+            color: '#6b7280'
+          }}>
+            <span>Showing {leaveForms.length} of {pagination.totalLeaveForms} forms</span>
+            <span>Page {pagination.currentPage} of {pagination.totalPages}</span>
+          </div>
+        </div>
+      </div>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onClose={handleDeleteCancel} maxWidth="sm" fullWidth>
-        <DialogTitle>Delete Leave Form</DialogTitle>
-        <DialogContent>
-          <Typography variant="body1" sx={{ mb: 2 }}>
-            Are you sure you want to delete this leave form? This action cannot be undone.
-          </Typography>
-          {formToDelete && (
-            <Box sx={{ p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
-              <Typography variant="body2" color="text.secondary">
-                <strong>Leave Period:</strong> {formatDate(formToDelete.exitDate)} - {formatDate(formToDelete.entryDate)}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                <strong>Reason:</strong> {formToDelete.reason?.substring(0, 100)}{formToDelete.reason?.length > 100 ? '...' : ''}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                <strong>Status:</strong> {statusLabels[formToDelete.status] || formToDelete.status}
-              </Typography>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleDeleteCancel} disabled={deleting}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleDeleteConfirm} 
-            variant="contained" 
-            color="error"
-            disabled={deleting}
-            startIcon={deleting ? <CircularProgress size={20} /> : <DeleteIcon />}
-          >
-            {deleting ? 'Deleting...' : 'Delete Form'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+      {deleteDialogOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '24px',
+            maxWidth: '500px',
+            width: '90%',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)'
+          }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '16px', margin: 0 }}>
+              Delete Leave Form
+            </h3>
+            <p style={{ fontSize: '0.9rem', color: '#6b7280', marginBottom: '16px', margin: '0 0 16px 0' }}>
+              Are you sure you want to delete this leave form? This action cannot be undone.
+            </p>
+            {formToDelete && (
+              <div style={{ 
+                padding: '12px', 
+                backgroundColor: '#f5f5f5', 
+                borderRadius: '6px',
+                marginBottom: '16px'
+              }}>
+                <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '4px' }}>
+                  <strong>Leave Period:</strong> {formatDate(formToDelete.exitDate)} - {formatDate(formToDelete.entryDate)}
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '4px' }}>
+                  <strong>Reason:</strong> {formToDelete.reason?.substring(0, 100)}{formToDelete.reason?.length > 100 ? '...' : ''}
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                  <strong>Status:</strong> {statusLabels[formToDelete.status] || formToDelete.status}
+                </div>
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={handleDeleteCancel}
+                disabled={deleting}
+                style={{
+                  padding: '8px 16px',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  border: '2px solid #d1d5db',
+                  borderRadius: '6px',
+                  backgroundColor: 'white',
+                  color: '#374151',
+                  cursor: deleting ? 'not-allowed' : 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={deleting}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 16px',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  border: 'none',
+                  borderRadius: '6px',
+                  backgroundColor: '#ef4444',
+                  color: 'white',
+                  cursor: deleting ? 'not-allowed' : 'pointer',
+                  opacity: deleting ? 0.7 : 1,
+                }}
+              >
+                {deleting ? (
+                  <>
+                    <div style={{
+                      width: '16px',
+                      height: '16px',
+                      border: '2px solid white',
+                      borderTopColor: 'transparent',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite',
+                    }} />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={16} />
+                    Delete Form
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
   );
 };
 

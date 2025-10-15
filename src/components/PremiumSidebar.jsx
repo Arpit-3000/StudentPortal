@@ -28,6 +28,7 @@ import {
   School as AdmissionIcon,
   Notifications as NotificationIcon,
   Search as SearchIcon,
+  QrCode as QrCodeIcon,
 } from '@mui/icons-material';
 
 const PremiumSidebar = ({ 
@@ -71,6 +72,12 @@ const PremiumSidebar = ({
       label: 'Apply Leave',
       icon: <LeaveIcon />,
       color: '#f59e0b',
+    },
+    {
+      id: 'gatepass',
+      label: 'Gate Pass',
+      icon: <QrCodeIcon />,
+      color: '#3b82f6',
     },
     {
       id: 'assignments',

@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import StudentProfile from './StudentProfile';
 import LeaveManagement from './LeaveManagement';
+import GateManagement from './GateManagement';
 import PremiumSidebar from '../../components/PremiumSidebar';
 import PremiumHeader from '../../components/PremiumHeader';
 import PremiumDashboard from '../../components/PremiumDashboard';
@@ -50,6 +51,8 @@ const StudentPortal = () => {
         return <PremiumDashboard user={user} onNavigate={handleOptionSelect} />;
       case 'applyleave':
         return <LeaveManagement />;
+      case 'gatepass':
+        return <GateManagement />;
       default:
         const pageName = selectedOption.charAt(0).toUpperCase() + selectedOption.slice(1).replace(/([A-Z])/g, ' $1');
         return <UnderDevelopment pageName={pageName} />;

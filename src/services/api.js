@@ -66,6 +66,10 @@ export const studentAPI = {
   getMyLeaveForms: (params) => api.get('/api/leave-form/my-forms', { params }),
   getLeaveForm: (id) => api.get(`/api/leave-form/${id}`),
   deleteLeaveForm: (id) => api.delete(`/api/leave-form/${id}`),
+  // Gate Pass APIs
+  generateGatePass: (data) => api.post('/api/gate/generate', data),
+  getMyGateLogs: () => api.get('/api/gate/my-logs'),
+  getGateStatus: () => api.get('/api/gate/status'),
 };
 
 export const teacherAPI = {
@@ -102,6 +106,15 @@ export const nonTeachingAPI = {
   getFormDetails: (id) => api.get(`/api/non-teaching/forms/${id}`),
   verifyForm: (id, data) => api.put(`/api/non-teaching/forms/${id}/verify`, data),
   rejectForm: (id, data) => api.put(`/api/non-teaching/forms/${id}/reject-attendant`, data),
+};
+
+// Guard API for gate pass management
+export const guardAPI = {
+  // Gate Pass APIs
+  scanPass: (data) => api.post('/api/gate/scan', data),
+  getActiveStudents: (params) => api.get('/api/gate/active', { params }),
+  getGateLogs: (params) => api.get('/api/gate/logs', { params }),
+  getProfile: () => api.get('/api/non-teaching/profile'),
 };
 
 export default api;

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Home, Clock, User, Send, Eye } from 'lucide-react';
+import { studentAPI } from '../../services/api';
 
 const ApplyLeaveForm = () => {
   const [formData, setFormData] = useState({
@@ -48,10 +49,69 @@ const ApplyLeaveForm = () => {
     setSuccess('');
     setLoading(true);
 
-    setTimeout(() => {
+    try {
+      // Validate form data before submission
+      if (!formData.hostelName || !formData.roomNumber || !formData.exitDate || 
+          !formData.entryDate || !formData.exitTime || !formData.entryTime || 
+          !formData.reason || !formData.emergencyContact.name || 
+          !formData.emergencyContact.phone || !formData.emergencyContact.relation) {
+        setError('Please fill in all required fields');
+        setLoading(false);
+        return;
+      }
+
+      // Validate reason length
+      if (formData.reason.length < 10) {
+        setError('Reason must be at least 10 characters long');
+        setLoading(false);
+        return;
+      }
+
+      // Validate phone number
+      const phoneRegex = /^[6-9]\d{9}$/;
+      if (!phoneRegex.test(formData.emergencyContact.phone)) {
+        setError('Please enter a valid 10-digit phone number');
+        setLoading(false);
+        return;
+      }
+
+      // Submit the form to API
+      const response = await studentAPI.submitLeaveForm(formData);
+      
+      if (response.data.success) {
         setSuccess('Leave form submitted successfully!');
+        // Reset form after successful submission
+        setFormData({
+          hostelName: '',
+          roomNumber: '',
+          exitDate: '',
+          entryDate: '',
+          exitTime: '',
+          entryTime: '',
+          reason: '',
+          emergencyContact: {
+            name: '',
+            phone: '',
+            relation: '',
+          },
+        });
+      } else {
+        setError(response.data.message || 'Failed to submit leave form');
+      }
+    } catch (error) {
+      console.error('Submit leave form error:', error);
+      if (error.response?.data?.message) {
+        setError(error.response.data.message);
+      } else if (error.response?.data?.errors) {
+        // Handle validation errors from backend
+        const validationErrors = error.response.data.errors.map(err => err.msg).join(', ');
+        setError(validationErrors);
+      } else {
+        setError('Failed to submit leave form. Please try again.');
+      }
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   };
 
   return (
