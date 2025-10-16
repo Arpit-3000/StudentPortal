@@ -120,9 +120,8 @@ class DriveService {
             }).catch(error => {
               console.error('Error getting user info:', error);
               resolve({
-                success: true,
-                user: { getName: () => 'User', getEmail: () => 'user@example.com', getImageUrl: () => '' },
-                accessToken: response.access_token
+                success: false,
+                error: 'Failed to retrieve user information: ' + error.message
               });
             });
           }
@@ -142,11 +141,20 @@ class DriveService {
   async getUserInfo(accessToken) {
     try {
       const response = await fetch(`https://www.googleapis.com/oauth2/v2/userinfo?access_token=${accessToken}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch user info: ${response.status} ${response.statusText}`);
+      }
+      
       const userInfo = await response.json();
       
+      if (!userInfo.email) {
+        throw new Error('No email found in user info response');
+      }
+      
       return {
-        getName: () => userInfo.name || 'User',
-        getEmail: () => userInfo.email || 'user@example.com',
+        getName: () => userInfo.name || userInfo.given_name || 'User',
+        getEmail: () => userInfo.email,
         getImageUrl: () => userInfo.picture || ''
       };
     } catch (error) {
@@ -177,9 +185,15 @@ class DriveService {
 
   async isSignedIn() {
     try {
-      // Check if we have a valid access token
+      // First check if we have a token in memory
       if (!this.accessToken) {
-        return false;
+        // Try to load from localStorage
+        const storedToken = localStorage.getItem('drive_access_token');
+        if (storedToken) {
+          this.accessToken = storedToken;
+        } else {
+          return false;
+        }
       }
       
       // Verify the token is still valid by making a test request
@@ -193,11 +207,17 @@ class DriveService {
 
   async getFiles(maxResults = 10, query = '') {
     try {
+      // Ensure we have a token
       if (!this.accessToken) {
-        throw new Error('User not signed in');
+        const storedToken = localStorage.getItem('drive_access_token');
+        if (storedToken) {
+          this.accessToken = storedToken;
+        } else {
+          throw new Error('User not signed in');
+        }
       }
 
-      let url = `https://www.googleapis.com/drive/v3/files?pageSize=${maxResults}&fields=files(id,name,mimeType,size,createdTime,modifiedTime,webViewLink,thumbnailLink,owners,shared)`;
+      let url = `https://www.googleapis.com/drive/v3/files?pageSize=${maxResults}&fields=files(id,name,mimeType,size,createdTime,modifiedTime,webViewLink,thumbnailLink,owners,shared)&supportsAllDrives=true`;
       
       if (query) {
         url += `&q=${encodeURIComponent(query)}`;
@@ -231,12 +251,18 @@ class DriveService {
 
   async getFileContent(fileId) {
     try {
+      // Ensure we have a token
       if (!this.accessToken) {
-        throw new Error('User not signed in');
+        const storedToken = localStorage.getItem('drive_access_token');
+        if (storedToken) {
+          this.accessToken = storedToken;
+        } else {
+          throw new Error('User not signed in');
+        }
       }
 
       const response = await fetch(
-        `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+        `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&supportsAllDrives=true`,
         {
           headers: {
             'Authorization': `Bearer ${this.accessToken}`,
@@ -263,12 +289,22 @@ class DriveService {
 
   async downloadFile(fileId, fileName) {
     try {
+      console.log('DriveService: Attempting to download file:', fileId, fileName);
+      
+      // Ensure we have a token
       if (!this.accessToken) {
-        throw new Error('User not signed in');
+        const storedToken = localStorage.getItem('drive_access_token');
+        if (storedToken) {
+          this.accessToken = storedToken;
+          console.log('DriveService: Loaded token from localStorage');
+        } else {
+          throw new Error('User not signed in');
+        }
       }
 
-      const response = await fetch(
-        `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+      // First, get file metadata to check if it's downloadable
+      const metadataResponse = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,name,mimeType,size,webViewLink&supportsAllDrives=true`,
         {
           headers: {
             'Authorization': `Bearer ${this.accessToken}`,
@@ -276,23 +312,73 @@ class DriveService {
         }
       );
 
-      if (!response.ok) {
-        throw new Error(`Failed to download file: ${response.statusText}`);
+      if (!metadataResponse.ok) {
+        throw new Error(`Failed to get file metadata: ${metadataResponse.statusText}`);
       }
 
-      const blob = await response.blob();
+      const fileMetadata = await metadataResponse.json();
+      console.log('DriveService: File metadata:', fileMetadata);
+
+      // Check if file is a Google Workspace file (Docs, Sheets, Slides)
+      const isGoogleWorkspaceFile = fileMetadata.mimeType && (
+        fileMetadata.mimeType.includes('google-apps') ||
+        fileMetadata.mimeType.includes('application/vnd.google-apps')
+      );
+
+      if (isGoogleWorkspaceFile) {
+        // For Google Workspace files, open in new tab instead of downloading
+        console.log('DriveService: Google Workspace file detected, opening in new tab');
+        window.open(fileMetadata.webViewLink, '_blank');
+        return { success: true, message: 'Google Workspace file opened in new tab' };
+      }
+
+      // For regular files, try to download
+      const downloadResponse = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&supportsAllDrives=true`,
+        {
+          headers: {
+            'Authorization': `Bearer ${this.accessToken}`,
+          }
+        }
+      );
+
+      console.log('DriveService: Download response status:', downloadResponse.status, downloadResponse.statusText);
+
+      if (!downloadResponse.ok) {
+        const errorText = await downloadResponse.text();
+        console.error('DriveService: Download failed with response:', errorText);
+        
+        // If direct download fails, try opening the file in a new tab
+        if (fileMetadata.webViewLink) {
+          console.log('DriveService: Direct download failed, opening in new tab');
+          window.open(fileMetadata.webViewLink, '_blank');
+          return { success: true, message: 'File opened in new tab (download not available)' };
+        }
+        
+        throw new Error(`Failed to download file: ${downloadResponse.statusText}`);
+      }
+
+      const blob = await downloadResponse.blob();
+      console.log('DriveService: Blob created, size:', blob.size);
+      
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = fileName;
+      a.download = fileName || fileMetadata.name || 'download';
+      a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      
+      // Clean up
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 100);
 
+      console.log('DriveService: File download initiated successfully');
       return { success: true };
     } catch (error) {
-      console.error('Error downloading file:', error);
+      console.error('DriveService: Error downloading file:', error);
       return {
         success: false,
         error: error.message
@@ -302,27 +388,51 @@ class DriveService {
 
   async deleteFile(fileId) {
     try {
+      console.log('DriveService: Attempting to delete file with ID:', fileId);
+      
+      // Ensure we have a token
       if (!this.accessToken) {
-        throw new Error('User not signed in');
+        const storedToken = localStorage.getItem('drive_access_token');
+        if (storedToken) {
+          this.accessToken = storedToken;
+          console.log('DriveService: Loaded token from localStorage');
+        } else {
+          throw new Error('User not signed in');
+        }
       }
 
-      const response = await fetch(
-        `https://www.googleapis.com/drive/v3/files/${fileId}`,
-        {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${this.accessToken}`,
-          }
+      const url = `https://www.googleapis.com/drive/v3/files/${fileId}?supportsAllDrives=true`;
+      console.log('DriveService: Making DELETE request to:', url);
+
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
         }
-      );
+      });
+
+      console.log('DriveService: Delete response status:', response.status, response.statusText);
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('DriveService: Delete failed with response:', errorText);
+        
+        // Handle specific error cases
+        if (response.status === 403) {
+          throw new Error('Permission denied: You may not have permission to delete this file');
+        } else if (response.status === 404) {
+          throw new Error('File not found: The file may have already been deleted');
+        } else if (response.status === 400) {
+          throw new Error('Bad request: Invalid file ID or file cannot be deleted');
+        }
+        
         throw new Error(`Failed to delete file: ${response.statusText}`);
       }
 
+      console.log('DriveService: File deleted successfully');
       return { success: true };
     } catch (error) {
-      console.error('Error deleting file:', error);
+      console.error('DriveService: Error deleting file:', error);
       return {
         success: false,
         error: error.message
@@ -332,12 +442,18 @@ class DriveService {
 
   async renameFile(fileId, newName) {
     try {
+      // Ensure we have a token
       if (!this.accessToken) {
-        throw new Error('User not signed in');
+        const storedToken = localStorage.getItem('drive_access_token');
+        if (storedToken) {
+          this.accessToken = storedToken;
+        } else {
+          throw new Error('User not signed in');
+        }
       }
 
       const response = await fetch(
-        `https://www.googleapis.com/drive/v3/files/${fileId}`,
+        `https://www.googleapis.com/drive/v3/files/${fileId}?supportsAllDrives=true`,
         {
           method: 'PATCH',
           headers: {
@@ -366,8 +482,14 @@ class DriveService {
 
   async uploadFile(file, name) {
     try {
+      // Ensure we have a token
       if (!this.accessToken) {
-        throw new Error('User not signed in');
+        const storedToken = localStorage.getItem('drive_access_token');
+        if (storedToken) {
+          this.accessToken = storedToken;
+        } else {
+          throw new Error('User not signed in');
+        }
       }
 
       const metadata = {

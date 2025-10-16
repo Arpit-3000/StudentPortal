@@ -120,9 +120,8 @@ class GmailService {
             }).catch(error => {
               console.error('Error getting user info:', error);
               resolve({
-                success: true,
-                user: { getName: () => 'User', getEmail: () => 'user@example.com', getImageUrl: () => '' },
-                accessToken: response.access_token
+                success: false,
+                error: 'Failed to retrieve user information: ' + error.message
               });
             });
           }
@@ -142,11 +141,20 @@ class GmailService {
   async getUserInfo(accessToken) {
     try {
       const response = await fetch(`https://www.googleapis.com/oauth2/v2/userinfo?access_token=${accessToken}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch user info: ${response.status} ${response.statusText}`);
+      }
+      
       const userInfo = await response.json();
       
+      if (!userInfo.email) {
+        throw new Error('No email found in user info response');
+      }
+      
       return {
-        getName: () => userInfo.name || 'User',
-        getEmail: () => userInfo.email || 'example.com',
+        getName: () => userInfo.name || userInfo.given_name || 'User',
+        getEmail: () => userInfo.email,
         getImageUrl: () => userInfo.picture || ''
       };
     } catch (error) {
@@ -177,9 +185,15 @@ class GmailService {
 
   async isSignedIn() {
     try {
-      // Check if we have a valid access token
+      // First check if we have a token in memory
       if (!this.accessToken) {
-        return false;
+        // Try to load from localStorage
+        const storedToken = localStorage.getItem('gmail_access_token');
+        if (storedToken) {
+          this.accessToken = storedToken;
+        } else {
+          return false;
+        }
       }
       
       // Verify the token is still valid by making a test request
@@ -193,8 +207,14 @@ class GmailService {
 
   async getEmails(maxResults = 10) {
     try {
+      // Ensure we have a token
       if (!this.accessToken) {
-        throw new Error('User not signed in');
+        const storedToken = localStorage.getItem('gmail_access_token');
+        if (storedToken) {
+          this.accessToken = storedToken;
+        } else {
+          throw new Error('User not signed in');
+        }
       }
 
       // Fetch messages list
@@ -235,6 +255,16 @@ class GmailService {
 
   async getEmailDetails(messageId) {
     try {
+      // Ensure we have a token
+      if (!this.accessToken) {
+        const storedToken = localStorage.getItem('gmail_access_token');
+        if (storedToken) {
+          this.accessToken = storedToken;
+        } else {
+          throw new Error('User not signed in');
+        }
+      }
+
       const response = await fetch(
         `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}?format=full`,
         {
@@ -266,6 +296,9 @@ class GmailService {
       const fromEmail = from.match(/<(.+)>/) ? from.match(/<(.+)>/)[1] : from;
       const fromName = from.replace(/<.+>/, '').trim() || fromEmail;
 
+      // Extract full email body
+      const body = this.extractEmailBody(message.payload);
+
       return {
         id: messageId,
         subject,
@@ -273,12 +306,55 @@ class GmailService {
         fromEmail,
         date: new Date(date),
         snippet,
+        body,
         threadId: message.threadId,
         labelIds: message.labelIds
       };
     } catch (error) {
       console.error('Error fetching email details:', error);
       return null;
+    }
+  }
+
+  extractEmailBody(payload) {
+    let body = '';
+    
+    if (payload.body && payload.body.data) {
+      // Single part message
+      body = this.decodeBase64(payload.body.data);
+    } else if (payload.parts) {
+      // Multi-part message
+      body = this.extractBodyFromParts(payload.parts);
+    }
+    
+    return body || '';
+  }
+
+  extractBodyFromParts(parts) {
+    let body = '';
+    
+    for (const part of parts) {
+      if (part.mimeType === 'text/plain' || part.mimeType === 'text/html') {
+        if (part.body && part.body.data) {
+          body += this.decodeBase64(part.body.data);
+        }
+      } else if (part.parts) {
+        // Recursively check nested parts
+        body += this.extractBodyFromParts(part.parts);
+      }
+    }
+    
+    return body;
+  }
+
+  decodeBase64(data) {
+    try {
+      // Gmail uses URL-safe base64 encoding
+      const base64 = data.replace(/-/g, '+').replace(/_/g, '/');
+      return atob(base64);
+    } catch (error) {
+      console.error('Error decoding base64:', error);
+      return '';
     }
   }
 
