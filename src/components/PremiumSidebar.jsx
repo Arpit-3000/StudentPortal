@@ -29,6 +29,8 @@ import {
   Notifications as NotificationIcon,
   Search as SearchIcon,
   QrCode as QrCodeIcon,
+  Email as EmailIcon,
+  CloudUpload as CloudUploadIcon,
 } from '@mui/icons-material';
 
 const PremiumSidebar = ({ 
@@ -102,6 +104,18 @@ const PremiumSidebar = ({
       label: 'Documents',
       icon: <DocumentIcon />,
       color: '#6366f1',
+    },
+    {
+      id: 'mailnotices',
+      label: 'Mail & Notices',
+      icon: <EmailIcon />,
+      color: '#ec4899',
+    },
+    {
+      id: 'googledrive',
+      label: 'Google Drive',
+      icon: <CloudUploadIcon />,
+      color: '#4285f4',
     },
   ];
 

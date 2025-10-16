@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authAPI, studentAPI, teacherAPI, adminAPI, accountAPI } from '../services/api';
+import { useGoogleAuth } from './GoogleAuthContext';
 
 const AuthContext = createContext();
 
@@ -203,10 +204,17 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    // Clear main app authentication
     localStorage.removeItem('authToken');
     localStorage.removeItem('userData');
     setUser(null);
     setIsAuthenticated(false);
+    
+    // Clear Google authentication
+    localStorage.removeItem('gmail_access_token');
+    localStorage.removeItem('gmail_user');
+    localStorage.removeItem('drive_access_token');
+    localStorage.removeItem('drive_user');
   };
 
   const sendOTP = async (email, role = null, teacherId = null, staffId = null, nonTeachingRole = null) => {

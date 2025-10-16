@@ -6,6 +6,8 @@ import { useNavigate } from 'react-router-dom';
 import StudentProfile from './StudentProfile';
 import LeaveManagement from './LeaveManagement';
 import GateManagement from './GateManagement';
+import MailAndNotices from './MailAndNotices';
+import GoogleDrive from './GoogleDrive';
 import PremiumSidebar from '../../components/PremiumSidebar';
 import PremiumHeader from '../../components/PremiumHeader';
 import PremiumDashboard from '../../components/PremiumDashboard';
@@ -53,6 +55,10 @@ const StudentPortal = () => {
         return <LeaveManagement />;
       case 'gatepass':
         return <GateManagement />;
+      case 'mailnotices':
+        return <MailAndNotices />;
+      case 'googledrive':
+        return <GoogleDrive />;
       default:
         const pageName = selectedOption.charAt(0).toUpperCase() + selectedOption.slice(1).replace(/([A-Z])/g, ' $1');
         return <UnderDevelopment pageName={pageName} />;
