@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { GoogleAuthProvider } from './contexts/GoogleAuthContext';
 import LoginPage from './pages/LoginPage';
 import StudentPortal from './pages/student/StudentPortal';
 import TeacherPortal from './pages/teacher/TeacherPortal';
@@ -90,30 +91,32 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AuthProvider>
-        <Router>
-          <Routes>
-            <Route 
-              path="/login" 
-              element={
-                <PublicRoute>
-                  <LoginPage />
-                </PublicRoute>
-              } 
-            />
-            <Route 
-              path="/dashboard" 
-              element={
-                <ProtectedRoute>
-                  <ErrorBoundary>
-                    <RoleBasedDashboard />
-                  </ErrorBoundary>
-                </ProtectedRoute>
-              } 
-            />
-            <Route path="/" element={<Navigate to="/login" />} />
-            <Route path="*" element={<Navigate to="/login" />} />
-          </Routes>
-        </Router>
+        <GoogleAuthProvider>
+          <Router>
+            <Routes>
+              <Route 
+                path="/login" 
+                element={
+                  <PublicRoute>
+                    <LoginPage />
+                  </PublicRoute>
+                } 
+              />
+              <Route 
+                path="/dashboard" 
+                element={
+                  <ProtectedRoute>
+                    <ErrorBoundary>
+                      <RoleBasedDashboard />
+                    </ErrorBoundary>
+                  </ProtectedRoute>
+                } 
+              />
+              <Route path="/" element={<Navigate to="/login" />} />
+              <Route path="*" element={<Navigate to="/login" />} />
+            </Routes>
+          </Router>
+        </GoogleAuthProvider>
       </AuthProvider>
     </ThemeProvider>
   );

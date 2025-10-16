@@ -39,52 +39,35 @@ import {
   School as SchoolIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
+  OpenInNew as OpenInNewIcon,
+  Launch as LaunchIcon,
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useGoogleAuth } from '../../contexts/GoogleAuthContext';
 import gmailService from '../../services/gmailService.js';
 
 const MailAndNotices = () => {
-  const [isSignedIn, setIsSignedIn] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const { gmailAuth, signInGmail, signOutGmail } = useGoogleAuth();
   const [emails, setEmails] = useState([]);
   const [error, setError] = useState('');
-  const [userProfile, setUserProfile] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [expandedEmail, setExpandedEmail] = useState(null);
   const [readEmails, setReadEmails] = useState(new Set());
   const [starredEmails, setStarredEmails] = useState(new Set());
+  const [loadingEmailBody, setLoadingEmailBody] = useState(new Set());
+  const [expandedBodies, setExpandedBodies] = useState(new Set());
 
-  useEffect(() => {
-    checkSignInStatus();
-  }, []);
-
-  const checkSignInStatus = async () => {
-    try {
-      const signedIn = await gmailService.isSignedIn();
-      setIsSignedIn(signedIn);
-      
-      if (signedIn) {
-        await loadEmails();
-      }
-    } catch (error) {
-      console.error('Error checking sign-in status:', error);
-    }
-  };
+  // Remove automatic data fetching on sign-in
+  // Data will only be fetched when user manually clicks refresh or signs in
 
   const handleSignIn = async () => {
-    setIsLoading(true);
     setError('');
     
     try {
-      const result = await gmailService.signIn();
+      const result = await signInGmail();
       
       if (result.success) {
-        setIsSignedIn(true);
-        setUserProfile({
-          name: result.user.getName(),
-          email: result.user.getEmail(),
-          imageUrl: result.user.getImageUrl()
-        });
+        // Automatically load emails after successful sign-in
         await loadEmails();
       } else {
         setError(result.error || 'Failed to sign in');
@@ -92,20 +75,14 @@ const MailAndNotices = () => {
     } catch (error) {
       setError('An error occurred during sign in');
       console.error('Sign in error:', error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleSignOut = async () => {
-    setIsLoading(true);
-    
     try {
-      const result = await gmailService.signOut();
+      const result = await signOutGmail();
       
       if (result.success) {
-        setIsSignedIn(false);
-        setUserProfile(null);
         setEmails([]);
         setError('');
       } else {
@@ -114,8 +91,6 @@ const MailAndNotices = () => {
     } catch (error) {
       setError('An error occurred during sign out');
       console.error('Sign out error:', error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -161,9 +136,37 @@ const MailAndNotices = () => {
       .trim();
   };
 
-  const handleEmailClick = (emailId) => {
+  const handleEmailClick = async (emailId) => {
     setReadEmails(prev => new Set([...prev, emailId]));
-    setExpandedEmail(expandedEmail === emailId ? null : emailId);
+    
+    if (expandedEmail === emailId) {
+      setExpandedEmail(null);
+    } else {
+      setExpandedEmail(emailId);
+      
+      // If email doesn't have body yet, fetch it
+      const email = emails.find(e => e.id === emailId);
+      if (email && !email.body) {
+        setLoadingEmailBody(prev => new Set([...prev, emailId]));
+        
+        try {
+          const result = await gmailService.getEmailDetails(emailId);
+          if (result) {
+            setEmails(prev => prev.map(e => 
+              e.id === emailId ? { ...e, body: result.body } : e
+            ));
+          }
+        } catch (error) {
+          console.error('Error fetching email body:', error);
+        } finally {
+          setLoadingEmailBody(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(emailId);
+            return newSet;
+          });
+        }
+      }
+    }
   };
 
   const handleStarEmail = (emailId, event) => {
@@ -179,7 +182,54 @@ const MailAndNotices = () => {
     });
   };
 
-  if (!isSignedIn) {
+  const handleOpenInGmail = (emailId, event) => {
+    event.stopPropagation();
+    // Open the email in Gmail in a new tab
+    const gmailUrl = `https://mail.google.com/mail/u/0/#inbox/${emailId}`;
+    window.open(gmailUrl, '_blank');
+  };
+
+  const cleanEmailBody = (body) => {
+    if (!body) return '';
+    
+    // Remove HTML tags if present
+    const textBody = body.replace(/<[^>]*>/g, '');
+    
+    // Clean up the text
+    return textBody
+      .replace(/&[a-zA-Z0-9#]+;/g, ' ')
+      .replace(/[#&]/g, ' ')
+      .replace(/[^\w\s.,!?@-]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
+  const toggleBodyExpansion = (emailId, event) => {
+    event.stopPropagation();
+    setExpandedBodies(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(emailId)) {
+        newSet.delete(emailId);
+      } else {
+        newSet.add(emailId);
+      }
+      return newSet;
+    });
+  };
+
+  const getTruncatedBody = (body, emailId) => {
+    if (!body) return '';
+    const isExpanded = expandedBodies.has(emailId);
+    const maxLength = 500; // Show first 500 characters
+    
+    if (body.length <= maxLength || isExpanded) {
+      return body;
+    }
+    
+    return body.substring(0, maxLength) + '...';
+  };
+
+  if (!gmailAuth.isSignedIn) {
     return (
       <Box sx={{ p: 3 }}>
         <motion.div
@@ -208,9 +258,9 @@ const MailAndNotices = () => {
             <Button
               variant="contained"
               size="large"
-              startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : <LoginIcon />}
+              startIcon={gmailAuth.loading ? <CircularProgress size={20} color="inherit" /> : <LoginIcon />}
               onClick={handleSignIn}
-              disabled={isLoading}
+              disabled={gmailAuth.loading}
               sx={{
                 px: 4,
                 py: 1.5,
@@ -227,7 +277,7 @@ const MailAndNotices = () => {
                 transition: 'all 0.3s ease',
               }}
             >
-              {isLoading ? 'Signing In...' : 'Sign in with Gmail'}
+              {gmailAuth.loading ? 'Signing In...' : 'Sign in with Gmail'}
             </Button>
             
             {error && (
@@ -256,7 +306,7 @@ const MailAndNotices = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <Avatar
-                src={userProfile?.imageUrl}
+                src={gmailAuth.user?.imageUrl}
                 sx={{ 
                   width: 48, 
                   height: 48, 
@@ -264,46 +314,24 @@ const MailAndNotices = () => {
                   background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                 }}
               >
-                {userProfile?.name ? getInitials(userProfile.name) : <PersonIcon />}
+                {gmailAuth.user?.name ? getInitials(gmailAuth.user.name) : <PersonIcon />}
               </Avatar>
               <Box>
                 <Typography variant="h5" sx={{ fontWeight: 700, color: '#1e293b' }}>
                   Mail & Notices
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#64748b' }}>
-                  {userProfile?.email}
+                  {gmailAuth.user?.email}
                 </Typography>
               </Box>
             </Box>
             
             <Box sx={{ display: 'flex', gap: 1 }}>
-              <Tooltip title="Refresh">
-                <span>
-                  <IconButton
-                    onClick={loadEmails}
-                    disabled={refreshing}
-                    sx={{
-                      background: '#f8fafc',
-                      '&:hover': { background: '#e2e8f0' }
-                    }}
-                  >
-                    <RefreshIcon sx={{ 
-                      color: '#6366f1',
-                      animation: refreshing ? 'spin 1s linear infinite' : 'none',
-                      '@keyframes spin': {
-                        '0%': { transform: 'rotate(0deg)' },
-                        '100%': { transform: 'rotate(360deg)' }
-                      }
-                    }} />
-                  </IconButton>
-                </span>
-              </Tooltip>
-              
               <Tooltip title="Sign Out">
                 <span>
                   <IconButton
                     onClick={handleSignOut}
-                    disabled={isLoading}
+                    disabled={gmailAuth.loading}
                     sx={{
                       background: '#fef2f2',
                       '&:hover': { background: '#fee2e2' }
@@ -317,6 +345,32 @@ const MailAndNotices = () => {
           </Box>
           
           <Divider />
+        </Box>
+
+        {/* Manual Refresh Button */}
+        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center' }}>
+          <Button
+            variant="contained"
+            startIcon={refreshing ? <CircularProgress size={20} color="inherit" /> : <RefreshIcon />}
+            onClick={loadEmails}
+            disabled={refreshing}
+            sx={{
+              px: 4,
+              py: 1.5,
+              fontSize: '1rem',
+              fontWeight: 600,
+              borderRadius: 2,
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
+                transform: 'translateY(-1px)',
+              },
+              transition: 'all 0.3s ease',
+              boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
+            }}
+          >
+            {refreshing ? 'Refreshing...' : 'Refresh Emails'}
+          </Button>
         </Box>
 
         {/* Error Alert */}
@@ -333,7 +387,7 @@ const MailAndNotices = () => {
         {/* Simple Header */}
         <Box sx={{ mb: 3 }}>
           <Typography variant="h6" sx={{ fontWeight: 600, color: '#374151' }}>
-            {emails.length} emails
+            {emails.length > 0 ? `${emails.length} emails` : 'No emails loaded - Click refresh to load emails'}
           </Typography>
         </Box>
 
@@ -477,23 +531,102 @@ const MailAndNotices = () => {
                           {/* Expanded Content */}
                           <Collapse in={isExpanded}>
                             <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #e5e7eb' }}>
-                              <Typography 
-                                variant="body2" 
-                                component="div"
-                                sx={{
-                                  color: '#374151',
-                                  fontSize: '0.9rem',
-                                  lineHeight: 1.6,
-                                  whiteSpace: 'pre-wrap',
-                                  mb: 2,
-                                  wordBreak: 'break-word',
-                                }}
-                              >
-                                {cleanEmailContent(email.snippet)}
-                              </Typography>
-                              <Typography variant="caption" sx={{ color: '#9ca3af' }}>
-                                Received: {email.date.toLocaleString()}
-                              </Typography>
+                              {loadingEmailBody.has(email.id) ? (
+                                <Box sx={{ 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  justifyContent: 'center',
+                                  py: 3,
+                                  backgroundColor: '#f8fafc',
+                                  borderRadius: '8px',
+                                  border: '1px solid #e2e8f0',
+                                }}>
+                                  <CircularProgress size={20} sx={{ mr: 1 }} />
+                                  <Typography variant="body2" sx={{ color: '#6b7280' }}>
+                                    Loading email content...
+                                  </Typography>
+                                </Box>
+                              ) : (
+                                <Box>
+                                  <Typography 
+                                    variant="body2" 
+                                    component="div"
+                                    sx={{
+                                      color: '#374151',
+                                      fontSize: '0.9rem',
+                                      lineHeight: 1.6,
+                                      whiteSpace: 'pre-wrap',
+                                      mb: 2,
+                                      wordBreak: 'break-word',
+                                      maxHeight: '300px',
+                                      overflowY: 'auto',
+                                      padding: '12px',
+                                      backgroundColor: '#f8fafc',
+                                      borderRadius: '8px',
+                                      border: '1px solid #e2e8f0',
+                                    }}
+                                  >
+                                    {email.body ? getTruncatedBody(cleanEmailBody(email.body), email.id) : cleanEmailContent(email.snippet)}
+                                  </Typography>
+                                  
+                                  {email.body && cleanEmailBody(email.body).length > 500 && (
+                                    <Button
+                                      size="small"
+                                      onClick={(e) => toggleBodyExpansion(email.id, e)}
+                                      sx={{
+                                        fontSize: '0.75rem',
+                                        py: 0.5,
+                                        px: 1,
+                                        minWidth: 'auto',
+                                        textTransform: 'none',
+                                        color: '#6366f1',
+                                        '&:hover': {
+                                          backgroundColor: 'rgba(99, 102, 241, 0.04)',
+                                        }
+                                      }}
+                                    >
+                                      {expandedBodies.has(email.id) ? 'Show Less' : 'Show More'}
+                                    </Button>
+                                  )}
+                                </Box>
+                              )}
+                              
+                              {!loadingEmailBody.has(email.id) && (
+                                <Box sx={{ 
+                                  display: 'flex', 
+                                  justifyContent: 'space-between', 
+                                  alignItems: 'center',
+                                  mt: 2,
+                                  pt: 1,
+                                  borderTop: '1px solid #e5e7eb'
+                                }}>
+                                  <Typography variant="caption" sx={{ color: '#9ca3af' }}>
+                                    Received: {email.date.toLocaleString()}
+                                  </Typography>
+                                  
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    startIcon={<LaunchIcon sx={{ fontSize: 16 }} />}
+                                    onClick={(e) => handleOpenInGmail(email.id, e)}
+                                    sx={{
+                                      fontSize: '0.75rem',
+                                      py: 0.5,
+                                      px: 1.5,
+                                      minWidth: 'auto',
+                                      textTransform: 'none',
+                                      borderColor: '#d1d5db',
+                                      color: '#6b7280',
+                                      '&:hover': {
+                                        borderColor: '#9ca3af',
+                                        backgroundColor: '#f9fafb',
+                                      }
+                                    }}
+                                  >
+                                    Open in Gmail
+                                  </Button>
+                                </Box>
+                              )}
                             </Box>
                           </Collapse>
                         </CardContent>

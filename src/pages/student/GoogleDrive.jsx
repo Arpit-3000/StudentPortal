@@ -26,12 +26,6 @@ import {
   Stack,
   TextField,
   InputAdornment,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Menu,
-  MenuItem,
   Snackbar,
   LinearProgress,
 } from '@mui/material';
@@ -45,8 +39,6 @@ import {
   ExpandLess as ExpandLessIcon,
   MoreVert as MoreVertIcon,
   Download as DownloadIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
   Share as ShareIcon,
   Visibility as VisibilityIcon,
   Folder as FolderIcon,
@@ -64,21 +56,16 @@ import {
   CloudDone as CloudDoneIcon,
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useGoogleAuth } from '../../contexts/GoogleAuthContext';
 import driveService from '../../services/driveService.js';
 
 const GoogleDrive = () => {
-  const [isSignedIn, setIsSignedIn] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const { driveAuth, signInDrive, signOutDrive } = useGoogleAuth();
   const [files, setFiles] = useState([]);
   const [filteredFiles, setFilteredFiles] = useState([]);
   const [error, setError] = useState('');
-  const [userProfile, setUserProfile] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [contextMenu, setContextMenu] = useState(null);
-  const [renameDialog, setRenameDialog] = useState({ open: false, fileId: '', currentName: '' });
-  const [newFileName, setNewFileName] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
@@ -86,9 +73,8 @@ const GoogleDrive = () => {
   const [folderPath, setFolderPath] = useState([{ id: 'root', name: 'My Drive' }]);
   const fileInputRef = useRef(null);
 
-  useEffect(() => {
-    checkSignInStatus();
-  }, []);
+  // Remove automatic data fetching on sign-in
+  // Data will only be fetched when user manually clicks refresh or signs in
 
   useEffect(() => {
     filterFiles();
@@ -107,54 +93,29 @@ const GoogleDrive = () => {
     setFilteredFiles(filtered);
   };
 
-  const checkSignInStatus = async () => {
-    try {
-      const signedIn = await driveService.isSignedIn();
-      setIsSignedIn(signedIn);
-      
-      if (signedIn) {
-        await loadFiles();
-      }
-    } catch (error) {
-      console.error('Error checking sign-in status:', error);
-    }
-  };
-
   const handleSignIn = async () => {
-    setIsLoading(true);
     setError('');
     
     try {
-      const result = await driveService.signIn();
+      const result = await signInDrive();
       
       if (result.success) {
-        setIsSignedIn(true);
-        setUserProfile({
-          name: result.user.getName(),
-          email: result.user.getEmail(),
-          imageUrl: result.user.getImageUrl()
-        });
-        await loadFiles();
+        // Automatically load files after successful sign-in
+        await loadFiles('root');
       } else {
         setError(result.error || 'Failed to sign in');
       }
     } catch (error) {
       setError('An error occurred during sign in');
       console.error('Sign in error:', error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleSignOut = async () => {
-    setIsLoading(true);
-    
     try {
-      const result = await driveService.signOut();
+      const result = await signOutDrive();
       
       if (result.success) {
-        setIsSignedIn(false);
-        setUserProfile(null);
         setFiles([]);
         setError('');
       } else {
@@ -163,8 +124,6 @@ const GoogleDrive = () => {
     } catch (error) {
       setError('An error occurred during sign out');
       console.error('Sign out error:', error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -173,12 +132,18 @@ const GoogleDrive = () => {
     setError('');
     
     try {
-      const query = folderId === 'root' ? '' : `'${folderId}' in parents`;
+      // Ensure folderId is properly set
+      const actualFolderId = folderId || 'root';
+      const query = actualFolderId === 'root' ? '' : `'${actualFolderId}' in parents`;
+      
+      console.log('Loading files for folder:', actualFolderId, 'Query:', query);
+      
       const result = await driveService.getFiles(10, query);
       
       if (result.success) {
         setFiles(result.files);
-        setCurrentFolder(folderId);
+        setCurrentFolder(actualFolderId);
+        console.log('Successfully loaded', result.files.length, 'files');
       } else {
         setError(result.error || 'Failed to load files');
       }
@@ -210,81 +175,33 @@ const GoogleDrive = () => {
     }
   };
 
-  const handleContextMenu = (event, file) => {
-    event.preventDefault();
-    setSelectedFile(file);
-    setContextMenu({
-      mouseX: event.clientX + 2,
-      mouseY: event.clientY - 6,
-    });
-  };
-
-  const handleCloseContextMenu = () => {
-    setContextMenu(null);
-    setSelectedFile(null);
-  };
 
   const handleDownload = async (file) => {
     try {
+      console.log('Attempting to download file:', file.name, 'ID:', file.id);
       const result = await driveService.downloadFile(file.id, file.name);
+      
       if (result.success) {
-        showSnackbar('File downloaded successfully', 'success');
-      } else {
-        showSnackbar('Failed to download file', 'error');
-      }
-    } catch (error) {
-      showSnackbar('Error downloading file', 'error');
-    }
-    handleCloseContextMenu();
-  };
-
-  const handleRename = (file) => {
-    setRenameDialog({
-      open: true,
-      fileId: file.id,
-      currentName: file.name
-    });
-    setNewFileName(file.name);
-    handleCloseContextMenu();
-  };
-
-  const handleRenameConfirm = async () => {
-    try {
-      const result = await driveService.renameFile(renameDialog.fileId, newFileName);
-      if (result.success) {
-        showSnackbar('File renamed successfully', 'success');
-        await loadFiles();
-      } else {
-        showSnackbar('Failed to rename file', 'error');
-      }
-    } catch (error) {
-      showSnackbar('Error renaming file', 'error');
-    }
-    setRenameDialog({ open: false, fileId: '', currentName: '' });
-  };
-
-  const handleDelete = async (file) => {
-    if (window.confirm(`Are you sure you want to delete "${file.name}"?`)) {
-      try {
-        const result = await driveService.deleteFile(file.id);
-        if (result.success) {
-          showSnackbar('File deleted successfully', 'success');
-          await loadFiles();
+        if (result.message) {
+          showSnackbar(result.message, 'info');
         } else {
-          showSnackbar('Failed to delete file', 'error');
+          showSnackbar('File downloaded successfully', 'success');
         }
-      } catch (error) {
-        showSnackbar('Error deleting file', 'error');
+      } else {
+        console.error('Download failed:', result.error);
+        showSnackbar(`Failed to download file: ${result.error}`, 'error');
       }
+    } catch (error) {
+      console.error('Download error:', error);
+      showSnackbar(`Error downloading file: ${error.message}`, 'error');
     }
-    handleCloseContextMenu();
   };
+
 
   const handleShare = (file) => {
     // Copy share link to clipboard
     navigator.clipboard.writeText(file.webViewLink);
     showSnackbar('Share link copied to clipboard', 'success');
-    handleCloseContextMenu();
   };
 
   const handleUpload = () => {
@@ -372,7 +289,7 @@ const GoogleDrive = () => {
       .slice(0, 2);
   };
 
-  if (!isSignedIn) {
+  if (!driveAuth.isSignedIn) {
     return (
       <Box sx={{ p: 3 }}>
         <motion.div
@@ -401,9 +318,9 @@ const GoogleDrive = () => {
             <Button
               variant="contained"
               size="large"
-              startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : <LoginIcon />}
+              startIcon={driveAuth.loading ? <CircularProgress size={20} color="inherit" /> : <LoginIcon />}
               onClick={handleSignIn}
-              disabled={isLoading}
+              disabled={driveAuth.loading}
               sx={{
                 px: 4,
                 py: 1.5,
@@ -420,7 +337,7 @@ const GoogleDrive = () => {
                 transition: 'all 0.3s ease',
               }}
             >
-              {isLoading ? 'Signing In...' : 'Sign in with Google Drive'}
+              {driveAuth.loading ? 'Signing In...' : 'Sign in with Google Drive'}
             </Button>
             
             {error && (
@@ -449,7 +366,7 @@ const GoogleDrive = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <Avatar
-                src={userProfile?.imageUrl}
+                src={driveAuth.user?.imageUrl}
                 sx={{ 
                   width: 48, 
                   height: 48, 
@@ -457,14 +374,14 @@ const GoogleDrive = () => {
                   background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                 }}
               >
-                {userProfile?.name ? getInitials(userProfile.name) : <CloudUploadIcon />}
+                {driveAuth.user?.name ? getInitials(driveAuth.user.name) : <CloudUploadIcon />}
               </Avatar>
               <Box>
                 <Typography variant="h5" sx={{ fontWeight: 700, color: '#1e293b' }}>
                   Google Drive
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#64748b' }}>
-                  {userProfile?.email}
+                  {driveAuth.user?.email}
                 </Typography>
               </Box>
             </Box>
@@ -485,33 +402,11 @@ const GoogleDrive = () => {
                 </span>
               </Tooltip>
               
-              <Tooltip title="Refresh">
-                <span>
-                  <IconButton
-                    onClick={loadFiles}
-                    disabled={refreshing}
-                    sx={{
-                      background: '#f8fafc',
-                      '&:hover': { background: '#e2e8f0' }
-                    }}
-                  >
-                    <RefreshIcon sx={{ 
-                      color: '#6366f1',
-                      animation: refreshing ? 'spin 1s linear infinite' : 'none',
-                      '@keyframes spin': {
-                        '0%': { transform: 'rotate(0deg)' },
-                        '100%': { transform: 'rotate(360deg)' }
-                      }
-                    }} />
-                  </IconButton>
-                </span>
-              </Tooltip>
-              
               <Tooltip title="Sign Out">
                 <span>
                   <IconButton
                     onClick={handleSignOut}
-                    disabled={isLoading}
+                    disabled={driveAuth.loading}
                     sx={{
                       background: '#fef2f2',
                       '&:hover': { background: '#fee2e2' }
@@ -525,6 +420,32 @@ const GoogleDrive = () => {
           </Box>
           
           <Divider />
+        </Box>
+
+        {/* Manual Refresh Button */}
+        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center' }}>
+          <Button
+            variant="contained"
+            startIcon={refreshing ? <CircularProgress size={20} color="inherit" /> : <RefreshIcon />}
+            onClick={() => loadFiles(currentFolder)}
+            disabled={refreshing}
+            sx={{
+              px: 4,
+              py: 1.5,
+              fontSize: '1rem',
+              fontWeight: 600,
+              borderRadius: 2,
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
+                transform: 'translateY(-1px)',
+              },
+              transition: 'all 0.3s ease',
+              boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
+            }}
+          >
+            {refreshing ? 'Refreshing...' : 'Refresh Files'}
+          </Button>
         </Box>
 
         {/* Upload Progress */}
@@ -603,7 +524,31 @@ const GoogleDrive = () => {
 
         {/* Files List */}
         <AnimatePresence>
-          {filteredFiles.length > 0 ? (
+          {files.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 4,
+                  textAlign: 'center',
+                  border: '2px dashed #e2e8f0',
+                  borderRadius: 2,
+                }}
+              >
+                <CloudUploadIcon sx={{ fontSize: 64, color: '#cbd5e1', mb: 2 }} />
+                <Typography variant="h6" sx={{ color: '#64748b', mb: 1 }}>
+                  No files loaded
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#9ca3af' }}>
+                  Click "Refresh Files" to load your Google Drive files.
+                </Typography>
+              </Paper>
+            </motion.div>
+          ) : filteredFiles.length > 0 ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -618,22 +563,21 @@ const GoogleDrive = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
                   >
-                    <Card
-                      elevation={0}
-                      sx={{
-                        borderRadius: 2,
-                        border: '1px solid #e2e8f0',
-                        backgroundColor: '#ffffff',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                        '&:hover': {
-                          elevation: 1,
-                          borderColor: '#9ca3af',
-                        },
-                      }}
-                      onClick={() => handleFileClick(file)}
-                      onContextMenu={(e) => handleContextMenu(e, file)}
-                    >
+                     <Card
+                       elevation={0}
+                       sx={{
+                         borderRadius: 2,
+                         border: '1px solid #e2e8f0',
+                         backgroundColor: '#ffffff',
+                         cursor: 'pointer',
+                         transition: 'all 0.2s ease',
+                         '&:hover': {
+                           elevation: 1,
+                           borderColor: '#9ca3af',
+                         },
+                       }}
+                       onClick={() => handleFileClick(file)}
+                     >
                       <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                           {/* File Icon */}
@@ -702,19 +646,56 @@ const GoogleDrive = () => {
                             </Typography>
                           </Box>
 
-                          {/* Time */}
-                          <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
-                            <Typography
-                              variant="caption"
-                              sx={{
-                                color: '#6b7280',
-                                fontSize: '0.75rem',
-                                display: 'block',
-                              }}
-                            >
-                              {driveService.formatDate(file.modifiedTime)}
-                            </Typography>
-                          </Box>
+                           {/* Action Icons */}
+                           <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
+                             <Tooltip title="Open">
+                               <IconButton
+                                 size="small"
+                                 onClick={(e) => {
+                                   e.stopPropagation();
+                                   handleFileClick(file);
+                                 }}
+                                 sx={{
+                                   color: '#6366f1',
+                                   '&:hover': { backgroundColor: '#f3f4f6' }
+                                 }}
+                               >
+                                 <VisibilityIcon sx={{ fontSize: 18 }} />
+                               </IconButton>
+                             </Tooltip>
+                             
+                             <Tooltip title="Download">
+                               <IconButton
+                                 size="small"
+                                 onClick={(e) => {
+                                   e.stopPropagation();
+                                   handleDownload(file);
+                                 }}
+                                 sx={{
+                                   color: '#10b981',
+                                   '&:hover': { backgroundColor: '#f3f4f6' }
+                                 }}
+                               >
+                                 <DownloadIcon sx={{ fontSize: 18 }} />
+                               </IconButton>
+                             </Tooltip>
+                             
+                             <Tooltip title="Share">
+                               <IconButton
+                                 size="small"
+                                 onClick={(e) => {
+                                   e.stopPropagation();
+                                   handleShare(file);
+                                 }}
+                                 sx={{
+                                   color: '#8b5cf6',
+                                   '&:hover': { backgroundColor: '#f3f4f6' }
+                                 }}
+                               >
+                                 <ShareIcon sx={{ fontSize: 18 }} />
+                               </IconButton>
+                             </Tooltip>
+                           </Box>
                         </Box>
                       </CardContent>
                     </Card>
@@ -764,63 +745,7 @@ const GoogleDrive = () => {
           style={{ display: 'none' }}
         />
 
-        {/* Context Menu */}
-        <Menu
-          open={contextMenu !== null}
-          onClose={handleCloseContextMenu}
-          anchorReference="anchorPosition"
-          anchorPosition={
-            contextMenu !== null
-              ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
-              : undefined
-          }
-        >
-          <MenuItem onClick={() => handleFileClick(selectedFile)}>
-            <VisibilityIcon sx={{ mr: 1 }} />
-            Open
-          </MenuItem>
-          <MenuItem onClick={() => handleDownload(selectedFile)}>
-            <DownloadIcon sx={{ mr: 1 }} />
-            Download
-          </MenuItem>
-          <MenuItem onClick={() => handleRename(selectedFile)}>
-            <EditIcon sx={{ mr: 1 }} />
-            Rename
-          </MenuItem>
-          <MenuItem onClick={() => handleShare(selectedFile)}>
-            <ShareIcon sx={{ mr: 1 }} />
-            Share
-          </MenuItem>
-          <Divider />
-          <MenuItem onClick={() => handleDelete(selectedFile)} sx={{ color: 'error.main' }}>
-            <DeleteIcon sx={{ mr: 1 }} />
-            Delete
-          </MenuItem>
-        </Menu>
 
-        {/* Rename Dialog */}
-        <Dialog open={renameDialog.open} onClose={() => setRenameDialog({ open: false, fileId: '', currentName: '' })}>
-          <DialogTitle>Rename File</DialogTitle>
-          <DialogContent>
-            <TextField
-              autoFocus
-              margin="dense"
-              label="File Name"
-              fullWidth
-              variant="outlined"
-              value={newFileName}
-              onChange={(e) => setNewFileName(e.target.value)}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setRenameDialog({ open: false, fileId: '', currentName: '' })}>
-              Cancel
-            </Button>
-            <Button onClick={handleRenameConfirm} variant="contained">
-              Rename
-            </Button>
-          </DialogActions>
-        </Dialog>
 
         {/* Snackbar */}
         <Snackbar
