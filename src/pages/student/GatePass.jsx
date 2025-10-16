@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { QrCode, Clock, MapPin, User, Calendar, RefreshCw, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { QrCode, Clock, MapPin, User, Calendar, RefreshCw, CheckCircle, XCircle, AlertCircle, Copy, Check } from 'lucide-react';
 import { studentAPI } from '../../services/api';
 
 const GatePass = () => {
@@ -14,6 +14,11 @@ const GatePass = () => {
   const [gateStatus, setGateStatus] = useState(null);
   const [studentInfo, setStudentInfo] = useState(null);
   const [currentStudentStatus, setCurrentStudentStatus] = useState(null);
+  const [copied, setCopied] = useState(false);
+
+  // localStorage keys
+  const QR_STORAGE_KEY = 'student_qr_data';
+  const QR_TIMER_KEY = 'student_qr_timer';
 
   const destinationOptions = [
    
@@ -28,8 +33,92 @@ const GatePass = () => {
     'Other',
   ];
 
+  // Save QR data to localStorage
+  const saveQRToStorage = (qrData) => {
+    try {
+      const dataToSave = {
+        qrCode: qrData.qrCode,
+        qrToken: qrData.qrToken,
+        qrExpiry: qrData.qrExpiry,
+        studentInfo: qrData.studentInfo,
+        generatedAt: new Date().toISOString(),
+        timeLeft: 300 // 5 minutes
+      };
+      localStorage.setItem(QR_STORAGE_KEY, JSON.stringify(dataToSave));
+      localStorage.setItem(QR_TIMER_KEY, JSON.stringify({
+        startTime: Date.now(),
+        duration: 300000 // 5 minutes in milliseconds
+      }));
+    } catch (err) {
+      console.error('Error saving QR to localStorage:', err);
+    }
+  };
+
+  // Load QR data from localStorage
+  const loadQRFromStorage = () => {
+    try {
+      const savedData = localStorage.getItem(QR_STORAGE_KEY);
+      const savedTimer = localStorage.getItem(QR_TIMER_KEY);
+      
+      if (savedData && savedTimer) {
+        const qrData = JSON.parse(savedData);
+        const timerData = JSON.parse(savedTimer);
+        
+        // Calculate remaining time
+        const elapsed = Date.now() - timerData.startTime;
+        const remaining = Math.max(0, timerData.duration - elapsed);
+        
+        // If time hasn't expired, restore the QR data
+        if (remaining > 0) {
+          setQrCode(qrData.qrCode);
+          setQrToken(qrData.qrToken);
+          setQrExpiry(qrData.qrExpiry);
+          setStudentInfo(qrData.studentInfo);
+          setTimeLeft(Math.ceil(remaining / 1000)); // Convert to seconds
+          return true;
+        } else {
+          // Time expired, clear storage
+          clearQRFromStorage();
+        }
+      }
+    } catch (err) {
+      console.error('Error loading QR from localStorage:', err);
+    }
+    return false;
+  };
+
+  // Clear QR data from localStorage
+  const clearQRFromStorage = () => {
+    try {
+      localStorage.removeItem(QR_STORAGE_KEY);
+      localStorage.removeItem(QR_TIMER_KEY);
+    } catch (err) {
+      console.error('Error clearing QR from localStorage:', err);
+    }
+  };
+
   useEffect(() => {
     fetchGateStatus();
+    // Try to load QR data from localStorage on component mount
+    loadQRFromStorage();
+    
+    // Listen for storage changes (when QR is processed in another tab)
+    const handleStorageChange = (e) => {
+      if (e.key === QR_STORAGE_KEY && e.newValue === null) {
+        // QR was cleared in another tab, clear it here too
+        setQrCode(null);
+        setQrToken(null);
+        setQrExpiry(null);
+        setTimeLeft(0);
+        setSuccess('QR code was processed in another tab.');
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   // Check if QR was processed and remove from UI
@@ -49,31 +138,55 @@ const GatePass = () => {
               setTimeLeft(0);
               setSuccess('QR code processed successfully! Your status has been updated.');
               setCurrentStudentStatus(newStatus);
+              // Clear localStorage when QR is processed
+              clearQRFromStorage();
+              // Clear any existing intervals
+              return true; // Signal to stop checking
             }
           }
         } catch (err) {
           console.error('Error checking QR status:', err);
         }
+        return false;
       };
 
-      // Check every 5 seconds if QR was processed
-      const interval = setInterval(checkQRStatus, 5000);
+      // Check every 3 seconds if QR was processed
+      const interval = setInterval(async () => {
+        const shouldStop = await checkQRStatus();
+        if (shouldStop) {
+          clearInterval(interval);
+        }
+      }, 3000);
+      
       return () => clearInterval(interval);
     }
   }, [qrCode, qrToken, currentStudentStatus]);
 
+  // Handle QR expiry after 5 minutes (300 seconds)
   useEffect(() => {
     let interval = null;
-    if (qrExpiry && timeLeft > 0) {
+    if (qrCode && timeLeft > 0) {
       interval = setInterval(() => {
-        setTimeLeft(timeLeft - 1);
+        setTimeLeft(prevTime => {
+          const newTime = prevTime - 1;
+          // If time expires, clear QR code
+          if (newTime <= 0) {
+            setQrCode(null);
+            setQrToken(null);
+            setQrExpiry(null);
+            setSuccess('QR code has expired. Please generate a new one.');
+            // Clear localStorage when QR expires
+            clearQRFromStorage();
+            return 0;
+          }
+          return newTime;
+        });
       }, 1000);
-    } else if (timeLeft === 0 && qrCode) {
-      setQrCode(null);
-      setQrExpiry(null);
     }
-    return () => clearInterval(interval);
-  }, [timeLeft, qrCode]);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [qrCode, timeLeft]);
 
   const fetchGateStatus = async () => {
     try {
@@ -100,7 +213,12 @@ const GatePass = () => {
     setLoading(true);
 
     try {
-      const response = await studentAPI.generateGatePass({ destination });
+      // For entry pass (when student is out), send default destination
+      // For exit pass (when student is in), send selected destination
+      const requestData = currentStudentStatus === 'out' 
+        ? { destination: 'Campus Entry' } 
+        : { destination };
+      const response = await studentAPI.generateGatePass(requestData);
       
       if (response.data.success) {
         const data = response.data.data;
@@ -108,8 +226,16 @@ const GatePass = () => {
         setQrToken(data.token);
         setQrExpiry(data.expiresAt);
         setStudentInfo(data.studentInfo);
-        setTimeLeft(600); // 10 minutes in seconds
+        setTimeLeft(300); // 5 minutes in seconds
         setSuccess(data.message || 'Gate pass generated successfully!');
+        
+        // Save QR data to localStorage for persistence
+        saveQRToStorage({
+          qrCode: data.qrCode,
+          qrToken: data.token,
+          qrExpiry: data.expiresAt,
+          studentInfo: data.studentInfo
+        });
         
         // Refresh student status after generating QR
         setTimeout(() => {
@@ -134,6 +260,25 @@ const GatePass = () => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
+    } catch (err) {
+      console.error('Failed to copy: ', err);
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const getStatusColor = (status) => {
@@ -325,34 +470,50 @@ const GatePass = () => {
           )}
 
             <form onSubmit={handleGenerateQR} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.9rem', color: '#4a5568', fontWeight: 600 }}>
-                  {currentStudentStatus === 'out' ? 'Coming From (Optional)' : 'Destination *'}
-                </label>
-                <select
-                  value={destination}
-                  onChange={(e) => setDestination(e.target.value)}
-                  required={currentStudentStatus === 'in'}
-                  disabled={false}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    fontSize: '0.9rem',
-                    border: '2px solid #d1d5db',
-                    borderRadius: '6px',
-                    outline: 'none',
-                    backgroundColor: 'white',
-                    transition: 'border-color 0.2s',
-                    cursor: 'pointer',
-                    opacity: 1,
-                  }}
-                >
-                  <option value="">{currentStudentStatus === 'out' ? 'Select where you\'re coming from (optional)' : 'Select destination'}</option>
-                  {destinationOptions.map((option) => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
-                </select>
-              </div>
+              {/* Only show destination field when student is IN (exiting) */}
+              {currentStudentStatus === 'in' && (
+                <div>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.9rem', color: '#4a5568', fontWeight: 600 }}>
+                    Destination *
+                  </label>
+                  <select
+                    value={destination}
+                    onChange={(e) => setDestination(e.target.value)}
+                    required={true}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      fontSize: '0.9rem',
+                      border: '2px solid #d1d5db',
+                      borderRadius: '6px',
+                      outline: 'none',
+                      backgroundColor: 'white',
+                      transition: 'border-color 0.2s',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <option value="">Select destination</option>
+                    {destinationOptions.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Show info message when student is OUT (entering) */}
+              {currentStudentStatus === 'out' && (
+                <div style={{
+                  padding: '12px 16px',
+                  backgroundColor: '#f0f9ff',
+                  border: '1px solid #bfdbfe',
+                  borderRadius: '6px',
+                  fontSize: '0.9rem',
+                  color: '#1d4ed8',
+                  textAlign: 'center'
+                }}>
+                  <strong>Entry Pass:</strong> Click generate to create your campus entry QR code. No destination selection needed.
+                </div>
+              )}
 
               <button
                 type="submit"
@@ -438,10 +599,10 @@ const GatePass = () => {
 
                 <div style={{ marginBottom: '12px' }}>
                   <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '4px' }}>
-                    Destination
+                    {currentStudentStatus === 'out' ? 'Entry Type' : 'Destination'}
                   </div>
                   <div style={{ fontSize: '1rem', fontWeight: 600, color: '#374151' }}>
-                    {destination}
+                    {currentStudentStatus === 'out' ? 'Campus Entry' : destination}
                   </div>
                 </div>
 
@@ -455,6 +616,61 @@ const GatePass = () => {
                       <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
                         Roll: {studentInfo.rollNumber} | Status: {studentInfo.currentStatus}
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* JWT Token Display */}
+                {qrToken && (
+                  <div style={{ 
+                    marginBottom: '12px', 
+                    width: '100%',
+                    maxWidth: '400px'
+                  }}>
+                    <div style={{ 
+                      fontSize: '0.8rem', 
+                      color: '#6b7280', 
+                      marginBottom: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}>
+                      <span>JWT Token</span>
+                      <button
+                        onClick={() => copyToClipboard(qrToken)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '4px 8px',
+                          fontSize: '0.7rem',
+                          fontWeight: 600,
+                          border: '1px solid #d1d5db',
+                          borderRadius: '4px',
+                          backgroundColor: copied ? '#10b981' : 'white',
+                          color: copied ? 'white' : '#6b7280',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        {copied ? <Check size={12} /> : <Copy size={12} />}
+                        {copied ? 'Copied!' : 'Copy'}
+                      </button>
+                    </div>
+                    <div style={{
+                      padding: '8px 12px',
+                      backgroundColor: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '6px',
+                      fontSize: '0.7rem',
+                      fontFamily: 'monospace',
+                      color: '#374151',
+                      wordBreak: 'break-all',
+                      lineHeight: '1.4',
+                      maxHeight: '80px',
+                      overflow: 'auto'
+                    }}>
+                      {qrToken}
                     </div>
                   </div>
                 )}
@@ -486,7 +702,10 @@ const GatePass = () => {
                   No QR Code Generated
                 </h3>
                 <p style={{ fontSize: '0.9rem', margin: 0 }}>
-                  Select a destination and generate a QR code to {currentStudentStatus === 'out' ? 'enter' : 'exit'} the campus
+                  {currentStudentStatus === 'out' 
+                    ? 'Generate a QR code to enter the campus' 
+                    : 'Select a destination and generate a QR code to exit the campus'
+                  }
                 </p>
               </div>
             )}

@@ -113,6 +113,7 @@ export const guardAPI = {
   // Gate Pass APIs
   scanPass: (data) => api.post('/api/gate/scan', data),
   getActiveStudents: (params) => api.get('/api/gate/active', { params }),
+  getOutsideStudents: (params) => api.get('/api/gate/outside-without-qr', { params }),
   getGateLogs: (params) => api.get('/api/gate/logs', { params }),
   getProfile: () => api.get('/api/non-teaching/profile'),
 };

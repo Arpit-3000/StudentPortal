@@ -20,6 +20,7 @@ import {
   Search as SearchIcon,
   Refresh as RefreshIcon,
   CheckCircle as CheckIcon,
+  X as XIcon,
   School as SchoolIcon,
   Person as PersonIcon,
   LocationOn as LocationIcon,
@@ -38,19 +39,80 @@ const ActiveStudents = ({ user }) => {
     setLoading(true);
     setError('');
     try {
-      const params = {};
+      const params = {
+        page: 1,
+        limit: 100
+      };
       if (filterDepartment) params.department = filterDepartment;
       if (filterYear) params.year = filterYear;
 
-      const response = await guardAPI.getActiveStudents(params);
-      if (response.data.success) {
-        setStudents(response.data.data.students || []);
+      console.log('🚀 Fetching outside students with params:', params);
+      console.log('🔗 API URL: /api/gate/outside-without-qr');
+      
+      const response = await guardAPI.getOutsideStudents(params);
+      console.log('📡 Full API Response:', response);
+      console.log('📊 Response Data:', response.data);
+      console.log('✅ Success Status:', response.data?.success);
+      console.log('📝 Message:', response.data?.message);
+      console.log('👥 Students Array:', response.data?.data?.students);
+      
+      if (response.data && response.data.success) {
+        const students = response.data.data?.students || [];
+        console.log('🎯 Final Students Count:', students.length);
+        console.log('👤 Students Data:', students);
+        setStudents(students);
       } else {
-        setError(response.data.message || 'Failed to fetch active students');
+        console.log('❌ API Failed:', response.data?.message);
+        // Show dummy data for testing
+        console.log('🧪 Showing dummy data for testing...');
+        const dummyStudents = [
+          {
+            id: 'dummy1',
+            name: 'Test Student',
+            rollNumber: 'TEST001',
+            studentId: 'STU001',
+            department: 'Computer Science',
+            year: '3rd',
+            phone: '9876543210',
+            currentStatus: 'out',
+            lastGateLog: {
+              action: 'exit',
+              destination: 'Home',
+              issuedAt: new Date().toISOString(),
+              status: 'processed'
+            }
+          }
+        ];
+        setStudents(dummyStudents);
+        setError('API failed, showing dummy data for testing');
       }
     } catch (err) {
-      console.error('Fetch active students error:', err);
-      setError(err.response?.data?.message || 'Failed to fetch active students. Please try again.');
+      console.error('💥 Fetch students outside error:', err);
+      console.error('💥 Error response:', err.response);
+      console.error('💥 Error data:', err.response?.data);
+      
+      // Show dummy data even on error for testing
+      console.log('🧪 Showing dummy data due to error...');
+      const dummyStudents = [
+        {
+          id: 'dummy2',
+          name: 'Error Test Student',
+          rollNumber: 'ERROR001',
+          studentId: 'STU002',
+          department: 'Computer Science',
+          year: '3rd',
+          phone: '9876543210',
+          currentStatus: 'out',
+          lastGateLog: {
+            action: 'exit',
+            destination: 'Home',
+            issuedAt: new Date().toISOString(),
+            status: 'processed'
+          }
+        }
+      ];
+      setStudents(dummyStudents);
+      setError('API error, showing dummy data for testing');
     } finally {
       setLoading(false);
     }
@@ -101,10 +163,10 @@ const ActiveStudents = ({ user }) => {
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h4" sx={{ fontWeight: 700, color: '#1f2937', mb: 1 }}>
-          Active Students
+          Students Outside Campus
         </Typography>
         <Typography variant="body1" sx={{ color: '#6b7280' }}>
-          Students currently on campus ({filteredStudents.length} active)
+          Students who have exited campus but not returned ({filteredStudents.length} students)
         </Typography>
       </Box>
 
@@ -187,20 +249,20 @@ const ActiveStudents = ({ user }) => {
           <CardContent sx={{ textAlign: 'center', py: 6 }}>
             <SchoolIcon sx={{ fontSize: 64, color: '#d1d5db', mb: 2 }} />
             <Typography variant="h6" sx={{ color: '#6b7280', mb: 1 }}>
-              {students.length === 0 ? 'No Active Students' : 'No Students Found'}
+              {students.length === 0 ? 'No Students Outside' : 'No Students Found'}
             </Typography>
             <Typography variant="body2" sx={{ color: '#9ca3af' }}>
               {students.length === 0 
-                ? 'No students are currently on campus'
+                ? 'All students are currently on campus'
                 : 'Try adjusting your search or filter criteria'
               }
             </Typography>
           </CardContent>
         </Card>
       ) : (
-        <Grid container spacing={2}>
-          {filteredStudents.map((student, index) => (
-            <Grid item xs={12} sm={6} md={4} key={student._id}>
+         <Grid container spacing={2}>
+           {filteredStudents.map((student, index) => (
+             <Grid item xs={12} sm={6} md={4} key={student.id || student._id}>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -243,11 +305,11 @@ const ActiveStudents = ({ user }) => {
                         </Typography>
                       </Box>
                       <Chip
-                        icon={<CheckIcon />}
-                        label="Active"
+                        icon={<XIcon />}
+                        label="Outside"
                         size="small"
                         sx={{
-                          backgroundColor: '#10b981',
+                          backgroundColor: '#ef4444',
                           color: 'white',
                           fontWeight: 600,
                         }}
@@ -278,15 +340,15 @@ const ActiveStudents = ({ user }) => {
                         <Box sx={{ 
                           mt: 1, 
                           p: 1, 
-                          backgroundColor: '#f0f9ff', 
+                          backgroundColor: '#fef2f2', 
                           borderRadius: 1,
-                          border: '1px solid #bfdbfe',
+                          border: '1px solid #fecaca',
                         }}>
-                          <Typography variant="caption" sx={{ color: '#1d4ed8', fontWeight: 600 }}>
-                            Last Activity
+                          <Typography variant="caption" sx={{ color: '#dc2626', fontWeight: 600 }}>
+                            Last Exit
                           </Typography>
                           <Typography variant="body2" sx={{ color: '#6b7280', fontSize: '0.8rem' }}>
-                            {student.lastGateLog.action} to {student.lastGateLog.destination}
+                            Exited to {student.lastGateLog.destination}
                           </Typography>
                           <Typography variant="caption" sx={{ color: '#6b7280' }}>
                             {formatDateTime(student.lastGateLog.issuedAt)}
