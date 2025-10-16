@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Home, Clock, User, Send, Eye, Search, RefreshCw, Plus, Trash2, Filter } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Home, Clock, User, Send, Eye, Search, RefreshCw, Plus, Trash2, Filter, Calendar, AlertCircle, CheckCircle, Loader } from 'lucide-react';
 import { studentAPI } from '../../services/api';
 
 const MyLeaveForms = ({ onAddNew, onViewForm }) => {
@@ -145,227 +146,348 @@ const MyLeaveForms = ({ onAddNew, onViewForm }) => {
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        minHeight: '400px',
-        background: 'linear-gradient(to bottom right, #f7fafc, #edf2f7)',
-        padding: '8px'
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+        padding: '24px'
       }}>
-        <div style={{
-          width: '40px',
-          height: '40px',
-          border: '4px solid #667eea',
-          borderTopColor: 'transparent',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite'
-        }} />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '16px'
+          }}
+        >
+          <Loader size={48} className="animate-spin" style={{ color: '#1e293b' }} />
+          <p style={{ fontSize: '1.1rem', color: '#64748b', fontWeight: 500 }}>
+            Loading your leave forms...
+          </p>
+        </motion.div>
       </div>
     );
   }
 
   return (
     <div style={{
-      minHeight: 'calc(100vh - 70px)',
-      background: 'linear-gradient(to bottom right, #f7fafc, #edf2f7)',
-      padding: '8px',
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+      padding: '24px',
       display: 'flex',
-      flexDirection: 'column'
+      alignItems: 'center',
+      justifyContent: 'center'
     }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column' }}>
-        {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        style={{ 
+          maxWidth: '1200px', 
+          width: '100%',
+          background: 'white',
+          borderRadius: '20px',
+          boxShadow: '0 25px 50px rgba(0, 0, 0, 0.15)',
+          overflow: 'hidden'
+        }}
+      >
+        {/* Professional Header */}
         <div style={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          borderRadius: '8px',
-          padding: '16px 20px',
-          marginBottom: '16px',
+          background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
+          padding: '32px',
           color: 'white',
-          boxShadow: '0 4px 20px rgba(102, 126, 234, 0.3)',
-          flexShrink: 0
+          textAlign: 'center',
+          position: 'relative',
+          overflow: 'hidden'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
-              </svg>
-              <div>
-                <h1 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '4px', margin: 0 }}>
-                  My Leave Forms
-                </h1>
-                <p style={{ fontSize: '0.9rem', opacity: 0.9, margin: 0 }}>
-                  View and manage your leave applications
-                </p>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
+          <div style={{
+            position: 'absolute',
+            top: '-50%',
+            right: '-50%',
+            width: '200px',
+            height: '200px',
+            background: 'rgba(255, 255, 255, 0.1)',
+            borderRadius: '50%',
+            transform: 'rotate(45deg)'
+          }} />
+          <div style={{
+            position: 'absolute',
+            bottom: '-30%',
+            left: '-30%',
+            width: '150px',
+            height: '150px',
+            background: 'rgba(255, 255, 255, 0.05)',
+            borderRadius: '50%'
+          }} />
+          <motion.div
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+            style={{ position: 'relative', zIndex: 1 }}
+          >
+            <Calendar size={48} style={{ marginBottom: '16px' }} />
+            <h1 style={{ 
+              fontSize: '2.5rem', 
+              fontWeight: 800, 
+              margin: '0 0 8px 0',
+              textShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+            }}>
+              My Leave Forms
+            </h1>
+            <p style={{ 
+              fontSize: '1.1rem', 
+              opacity: 0.9, 
+              margin: '0 0 24px 0',
+              fontWeight: 400
+            }}>
+              View and manage your leave applications
+            </p>
+            <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
+              <motion.button
                 onClick={handleRefresh}
                 disabled={loading}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  padding: '8px 16px',
-                  fontSize: '0.9rem',
+                  gap: '8px',
+                  padding: '12px 24px',
+                  fontSize: '0.95rem',
                   fontWeight: 600,
                   border: '2px solid rgba(255, 255, 255, 0.3)',
-                  borderRadius: '6px',
+                  borderRadius: '12px',
                   backgroundColor: 'rgba(255, 255, 255, 0.1)',
                   color: 'white',
                   cursor: loading ? 'not-allowed' : 'pointer',
                   opacity: loading ? 0.5 : 1,
+                  transition: 'all 0.2s ease'
                 }}
               >
-                <RefreshCw size={16} />
+                <RefreshCw size={18} />
                 Refresh
-              </button>
-              <button
+              </motion.button>
+              <motion.button
                 onClick={onAddNew}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  padding: '8px 16px',
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
+                  gap: '8px',
+                  padding: '12px 24px',
+                  fontSize: '0.95rem',
+                  fontWeight: 700,
                   border: 'none',
-                  borderRadius: '6px',
+                  borderRadius: '12px',
                   background: 'rgba(255, 255, 255, 0.2)',
                   color: 'white',
                   cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
                 }}
               >
-                <Plus size={16} />
+                <Plus size={18} />
                 Apply New Leave
-              </button>
+              </motion.button>
             </div>
-          </div>
+          </motion.div>
         </div>
 
-        {/* Error Alert */}
-        {error && (
-          <div style={{
-            backgroundColor: '#fee',
-            border: '1px solid #fcc',
-            borderRadius: '8px',
-            padding: '16px',
-            marginBottom: '16px',
-            color: '#c00',
-          }}>
-            {error}
-          </div>
-        )}
-
-        {/* Filters */}
-        <div style={{
-          backgroundColor: 'white',
-          borderRadius: '8px',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-          padding: '16px',
-          marginBottom: '16px',
-          display: 'flex',
-          gap: '12px',
-          flexWrap: 'wrap',
-          alignItems: 'center'
-        }}>
-          <div style={{ position: 'relative', flex: '1', minWidth: '250px' }}>
-            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#6b7280' }} />
-            <input
-              type="text"
-              placeholder="Search by reason..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+        {/* Professional Error Alert */}
+        <div style={{ padding: '0 32px', marginTop: '24px' }}>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
               style={{
-                width: '100%',
-                padding: '10px 12px 10px 40px',
-                fontSize: '0.9rem',
-                border: '2px solid #d1d5db',
-                borderRadius: '6px',
-                outline: 'none',
-                transition: 'border-color 0.2s',
-              }}
-            />
-          </div>
-          <div style={{ minWidth: '150px' }}>
-            <select
-              value={filters.status}
-              onChange={(e) => handleStatusFilter(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                fontSize: '0.9rem',
-                border: '2px solid #d1d5db',
-                borderRadius: '6px',
-                outline: 'none',
-                backgroundColor: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                backgroundColor: '#fef2f2',
+                border: '1px solid #fecaca',
+                borderRadius: '12px',
+                padding: '16px 20px',
+                marginBottom: '20px',
+                color: '#dc2626',
+                fontSize: '0.95rem',
+                fontWeight: 500
               }}
             >
-              <option value="">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-          </div>
+              <AlertCircle size={20} />
+              {error}
+            </motion.div>
+          )}
         </div>
 
-        {/* Leave Forms Cards */}
-        <div style={{
-          backgroundColor: 'white',
-          borderRadius: '8px',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-          padding: '16px',
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column'
-        }}>
-          {leaveForms.length === 0 ? (
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '60px 20px',
-              color: '#6b7280'
-            }}>
-              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" style={{ marginBottom: '16px', opacity: 0.5 }}>
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
-              </svg>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '8px', margin: 0 }}>
-                No leave forms found
-              </h3>
-              <p style={{ fontSize: '0.9rem', margin: 0, textAlign: 'center' }}>
-                {filters.status ? 'Try changing the status filter.' : 'Start by applying for a new leave form.'}
-              </p>
+        {/* Professional Filters */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          style={{
+            padding: '0 32px 32px 32px'
+          }}
+        >
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+            padding: '24px',
+            display: 'flex',
+            gap: '20px',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            border: '1px solid #f1f5f9'
+          }}>
+            <div style={{ position: 'relative', flex: '1', minWidth: '300px' }}>
+              <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+              <input
+                type="text"
+                placeholder="Search by reason..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '14px 16px 14px 48px',
+                  fontSize: '0.95rem',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '12px',
+                  outline: 'none',
+                  backgroundColor: '#fafafa',
+                  transition: 'all 0.2s ease'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#1e293b';
+                  e.target.style.backgroundColor = 'white';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(30, 41, 59, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#e5e7eb';
+                  e.target.style.backgroundColor = '#fafafa';
+                  e.target.style.boxShadow = 'none';
+                }}
+              />
             </div>
+            <div style={{ minWidth: '180px' }}>
+              <select
+                value={filters.status}
+                onChange={(e) => handleStatusFilter(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  fontSize: '0.95rem',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '12px',
+                  outline: 'none',
+                  backgroundColor: '#fafafa',
+                  transition: 'all 0.2s ease',
+                  cursor: 'pointer'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#1e293b';
+                  e.target.style.backgroundColor = 'white';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(30, 41, 59, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#e5e7eb';
+                  e.target.style.backgroundColor = '#fafafa';
+                  e.target.style.boxShadow = 'none';
+                }}
+              >
+                <option value="">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Professional Leave Forms Cards */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          style={{
+            padding: '0 32px 32px 32px'
+          }}
+        >
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+            padding: '24px',
+            border: '1px solid #f1f5f9'
+          }}>
+            {leaveForms.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '60px 20px',
+                  color: '#64748b'
+                }}
+              >
+                <Calendar size={64} style={{ marginBottom: '20px', opacity: 0.6, color: '#1e293b' }} />
+                <h3 style={{ 
+                  fontSize: '1.5rem', 
+                  fontWeight: 700, 
+                  marginBottom: '12px', 
+                  margin: '0 0 12px 0',
+                  color: '#1e293b'
+                }}>
+                  No leave forms found
+                </h3>
+                <p style={{ 
+                  fontSize: '1rem', 
+                  margin: 0, 
+                  textAlign: 'center',
+                  lineHeight: '1.5'
+                }}>
+                  {filters.status ? 'Try changing the status filter to see more results.' : 'Start by applying for a new leave form to get started.'}
+                </p>
+              </motion.div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {leaveForms
                 .filter(form => 
                   !searchTerm || 
                   form.reason.toLowerCase().includes(searchTerm.toLowerCase())
                 )
                 .map((form) => (
-                  <div
+                  <motion.div
                     key={form.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
                     style={{
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      padding: '16px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '16px',
+                      padding: '20px',
                       backgroundColor: '#fafafa',
-                      transition: 'all 0.2s',
+                      transition: 'all 0.3s ease',
                       cursor: 'pointer',
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#f0f9ff';
-                      e.currentTarget.style.borderColor = '#667eea';
+                      e.currentTarget.style.backgroundColor = '#f8fafc';
+                      e.currentTarget.style.borderColor = '#1e293b';
+                      e.currentTarget.style.boxShadow = '0 8px 25px rgba(30, 41, 59, 0.15)';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = '#fafafa';
                       e.currentTarget.style.borderColor = '#e5e7eb';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.05)';
+                      e.currentTarget.style.transform = 'translateY(0)';
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
@@ -398,45 +520,51 @@ const MyLeaveForms = ({ onAddNew, onViewForm }) => {
                         </div>
                       </div>
                       <div style={{ display: 'flex', gap: '8px' }}>
-                        <button
+                        <motion.button
                           onClick={() => onViewForm(form.id)}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '4px',
-                            padding: '6px 12px',
-                            fontSize: '0.8rem',
+                            gap: '6px',
+                            padding: '8px 16px',
+                            fontSize: '0.85rem',
                             fontWeight: 600,
-                            border: '2px solid #667eea',
-                            borderRadius: '4px',
+                            border: '2px solid #1e293b',
+                            borderRadius: '8px',
                             backgroundColor: 'white',
-                            color: '#667eea',
+                            color: '#1e293b',
                             cursor: 'pointer',
+                            transition: 'all 0.2s ease'
                           }}
                         >
-                          <Eye size={14} />
+                          <Eye size={16} />
                           View
-                        </button>
+                        </motion.button>
                         {form.status === 'pending' && (
-                          <button
+                          <motion.button
                             onClick={() => handleDeleteClick(form)}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
                             style={{
                               display: 'flex',
                               alignItems: 'center',
-                              gap: '4px',
-                              padding: '6px 12px',
-                              fontSize: '0.8rem',
+                              gap: '6px',
+                              padding: '8px 16px',
+                              fontSize: '0.85rem',
                               fontWeight: 600,
                               border: '2px solid #ef4444',
-                              borderRadius: '4px',
+                              borderRadius: '8px',
                               backgroundColor: 'white',
                               color: '#ef4444',
                               cursor: 'pointer',
+                              transition: 'all 0.2s ease'
                             }}
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={16} />
                             Delete
-                          </button>
+                          </motion.button>
                         )}
                       </div>
                     </div>
@@ -461,12 +589,13 @@ const MyLeaveForms = ({ onAddNew, onViewForm }) => {
                         <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '4px' }}>Duration</div>
                         <div style={{
                           display: 'inline-block',
-                          padding: '2px 8px',
-                          backgroundColor: '#667eea',
+                          padding: '4px 12px',
+                          backgroundColor: '#1e293b',
                           color: 'white',
-                          borderRadius: '4px',
-                          fontSize: '0.8rem',
-                          fontWeight: 600
+                          borderRadius: '8px',
+                          fontSize: '0.85rem',
+                          fontWeight: 600,
+                          boxShadow: '0 2px 4px rgba(30, 41, 59, 0.2)'
                         }}>
                           {getDuration(form.exitDate, form.entryDate)} days
                         </div>
@@ -495,57 +624,67 @@ const MyLeaveForms = ({ onAddNew, onViewForm }) => {
                         {form.reason}
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
             </div>
           )}
 
-          {/* Pagination */}
+          {/* Professional Pagination */}
           {pagination.totalPages > 1 && (
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px', gap: '8px' }}>
-              <button
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '32px', gap: '12px' }}>
+              <motion.button
                 onClick={() => handlePageChange(null, pagination.currentPage - 1)}
                 disabled={!pagination.hasPrev}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 style={{
-                  padding: '8px 12px',
-                  fontSize: '0.9rem',
+                  padding: '12px 20px',
+                  fontSize: '0.95rem',
                   fontWeight: 600,
-                  border: '2px solid #d1d5db',
-                  borderRadius: '6px',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '12px',
                   backgroundColor: 'white',
                   color: '#374151',
                   cursor: pagination.hasPrev ? 'pointer' : 'not-allowed',
                   opacity: pagination.hasPrev ? 1 : 0.5,
+                  transition: 'all 0.2s ease'
                 }}
               >
                 Previous
-              </button>
+              </motion.button>
               <span style={{
                 display: 'flex',
                 alignItems: 'center',
-                padding: '8px 16px',
-                fontSize: '0.9rem',
-                color: '#6b7280'
+                padding: '12px 20px',
+                fontSize: '0.95rem',
+                color: '#64748b',
+                fontWeight: 500,
+                backgroundColor: '#f8fafc',
+                borderRadius: '12px',
+                border: '1px solid #e5e7eb'
               }}>
                 Page {pagination.currentPage} of {pagination.totalPages}
               </span>
-              <button
+              <motion.button
                 onClick={() => handlePageChange(null, pagination.currentPage + 1)}
                 disabled={!pagination.hasNext}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 style={{
-                  padding: '8px 12px',
-                  fontSize: '0.9rem',
+                  padding: '12px 20px',
+                  fontSize: '0.95rem',
                   fontWeight: 600,
-                  border: '2px solid #d1d5db',
-                  borderRadius: '6px',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '12px',
                   backgroundColor: 'white',
                   color: '#374151',
                   cursor: pagination.hasNext ? 'pointer' : 'not-allowed',
                   opacity: pagination.hasNext ? 1 : 0.5,
+                  transition: 'all 0.2s ease'
                 }}
               >
                 Next
-              </button>
+              </motion.button>
             </div>
           )}
 
@@ -563,31 +702,44 @@ const MyLeaveForms = ({ onAddNew, onViewForm }) => {
             <span>Showing {leaveForms.length} of {pagination.totalLeaveForms} forms</span>
             <span>Page {pagination.currentPage} of {pagination.totalPages}</span>
           </div>
-        </div>
-      </div>
+          </div>
+        </motion.div>
+      </motion.div>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Professional Delete Confirmation Dialog */}
       {deleteDialogOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '8px',
-            padding: '24px',
-            maxWidth: '500px',
-            width: '90%',
-            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)'
-          }}>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            backdropFilter: 'blur(4px)'
+          }}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '20px',
+              padding: '32px',
+              maxWidth: '500px',
+              width: '90%',
+              boxShadow: '0 25px 50px rgba(0, 0, 0, 0.25)',
+              border: '1px solid #f1f5f9'
+            }}
+          >
             <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '16px', margin: 0 }}>
               Delete Leave Form
             </h3>
@@ -612,68 +764,71 @@ const MyLeaveForms = ({ onAddNew, onViewForm }) => {
                 </div>
               </div>
             )}
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button
+            <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end' }}>
+              <motion.button
                 onClick={handleDeleteCancel}
                 disabled={deleting}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 style={{
-                  padding: '8px 16px',
-                  fontSize: '0.9rem',
+                  padding: '12px 24px',
+                  fontSize: '0.95rem',
                   fontWeight: 600,
-                  border: '2px solid #d1d5db',
-                  borderRadius: '6px',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '12px',
                   backgroundColor: 'white',
                   color: '#374151',
                   cursor: deleting ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease'
                 }}
               >
                 Cancel
-              </button>
-              <button
+              </motion.button>
+              <motion.button
                 onClick={handleDeleteConfirm}
                 disabled={deleting}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  padding: '8px 16px',
-                  fontSize: '0.9rem',
+                  gap: '8px',
+                  padding: '12px 24px',
+                  fontSize: '0.95rem',
                   fontWeight: 600,
                   border: 'none',
-                  borderRadius: '6px',
+                  borderRadius: '12px',
                   backgroundColor: '#ef4444',
                   color: 'white',
                   cursor: deleting ? 'not-allowed' : 'pointer',
                   opacity: deleting ? 0.7 : 1,
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
                 }}
               >
                 {deleting ? (
                   <>
-                    <div style={{
-                      width: '16px',
-                      height: '16px',
-                      border: '2px solid white',
-                      borderTopColor: 'transparent',
-                      borderRadius: '50%',
-                      animation: 'spin 1s linear infinite',
-                    }} />
+                    <Loader size={18} className="animate-spin" />
                     Deleting...
                   </>
                 ) : (
                   <>
-                    <Trash2 size={16} />
+                    <Trash2 size={18} />
                     Delete Form
                   </>
                 )}
-              </button>
+              </motion.button>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
 
       <style>{`
         @keyframes spin {
           to { transform: rotate(360deg); }
+        }
+        .animate-spin {
+          animation: spin 1s linear infinite;
         }
       `}</style>
     </div>
