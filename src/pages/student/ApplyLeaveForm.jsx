@@ -1,5 +1,18 @@
 import React, { useState } from 'react';
-import { Home, Clock, User, Send, Eye } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { 
+  Home, 
+  Clock, 
+  User, 
+  Send, 
+  Eye, 
+  Calendar,
+  MapPin,
+  Phone,
+  AlertCircle,
+  CheckCircle,
+  Loader
+} from 'lucide-react';
 import { studentAPI } from '../../services/api';
 
 const ApplyLeaveForm = () => {
@@ -116,94 +129,188 @@ const ApplyLeaveForm = () => {
 
   return (
     <div style={{
-      minHeight: 'calc(100vh - 70px)',
-      background: 'linear-gradient(to bottom right, #f7fafc, #edf2f7)',
-      padding: '8px',
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+      padding: '24px',
       display: 'flex',
-      flexDirection: 'column'
+      alignItems: 'center',
+      justifyContent: 'center'
     }}>
-      <div style={{ maxWidth: '1000px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column' }}>
-        {/* Compact Header */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        style={{ 
+          maxWidth: '900px', 
+          width: '100%',
+          background: 'white',
+          borderRadius: '20px',
+          boxShadow: '0 25px 50px rgba(0, 0, 0, 0.15)',
+          overflow: 'hidden'
+        }}
+      >
+        {/* Professional Header */}
         <div style={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          borderRadius: '8px',
-          padding: '10px 14px',
-          marginBottom: '8px',
+          background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
+          padding: '32px',
           color: 'white',
-          boxShadow: '0 4px 20px rgba(102, 126, 234, 0.3)',
-          flexShrink: 0
+          textAlign: 'center',
+          position: 'relative',
+          overflow: 'hidden'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="16" y1="2" x2="16" y2="6"></line>
-              <line x1="8" y1="2" x2="8" y2="6"></line>
-              <line x1="3" y1="10" x2="21" y2="10"></line>
-            </svg>
-            <div>
-              <h1 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1px', margin: 0 }}>
-                Apply for Leave
-              </h1>
-              <p style={{ fontSize: '0.7rem', opacity: 0.9, margin: 0 }}>
-                Fill in the details to submit your leave request
-              </p>
-            </div>
-          </div>
+          <div style={{
+            position: 'absolute',
+            top: '-50%',
+            right: '-50%',
+            width: '200px',
+            height: '200px',
+            background: 'rgba(255, 255, 255, 0.1)',
+            borderRadius: '50%',
+            transform: 'rotate(45deg)'
+          }} />
+          <div style={{
+            position: 'absolute',
+            bottom: '-30%',
+            left: '-30%',
+            width: '150px',
+            height: '150px',
+            background: 'rgba(255, 255, 255, 0.05)',
+            borderRadius: '50%'
+          }} />
+          <motion.div
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+            style={{ position: 'relative', zIndex: 1 }}
+          >
+            <Calendar size={48} style={{ marginBottom: '16px' }} />
+            <h1 style={{ 
+              fontSize: '2.5rem', 
+              fontWeight: 800, 
+              margin: '0 0 8px 0',
+              textShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+            }}>
+              Apply for Leave
+            </h1>
+            <p style={{ 
+              fontSize: '1.1rem', 
+              opacity: 0.9, 
+              margin: 0,
+              fontWeight: 400
+            }}>
+              Submit your leave request with complete details
+            </p>
+          </motion.div>
         </div>
 
-        {/* Alerts */}
+        {/* Professional Alerts */}
+        <div style={{ padding: '0 32px', marginTop: '24px' }}>
           {error && (
-          <div style={{
-            backgroundColor: '#fee',
-            border: '1px solid #fcc',
-            borderRadius: '8px',
-            padding: '16px',
-            marginBottom: '24px',
-            color: '#c00',
-          }}>
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                backgroundColor: '#fef2f2',
+                border: '1px solid #fecaca',
+                borderRadius: '12px',
+                padding: '16px 20px',
+                marginBottom: '20px',
+                color: '#dc2626',
+                fontSize: '0.95rem',
+                fontWeight: 500
+              }}
+            >
+              <AlertCircle size={20} />
               {error}
-          </div>
+            </motion.div>
           )}
           {success && (
-          <div style={{
-            backgroundColor: '#efe',
-            border: '1px solid #cfc',
-            borderRadius: '8px',
-            padding: '16px',
-            marginBottom: '24px',
-            color: '#060',
-          }}>
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                backgroundColor: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+                borderRadius: '12px',
+                padding: '16px 20px',
+                marginBottom: '20px',
+                color: '#16a34a',
+                fontSize: '0.95rem',
+                fontWeight: 500
+              }}
+            >
+              <CheckCircle size={20} />
               {success}
-          </div>
-        )}
+            </motion.div>
+          )}
+        </div>
 
-        {/* Main Card */}
-        <div style={{
-          backgroundColor: 'white',
-          borderRadius: '8px',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-          padding: '12px',
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column'
-        }}>
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
-              {/* Hostel Information */}
-            <div style={{ marginBottom: '8px' }}>
+        {/* Professional Form */}
+        <div style={{ padding: '0 32px 32px 32px' }}>
+          <form onSubmit={handleSubmit}>
+            {/* Hostel Information Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              style={{ marginBottom: '32px' }}
+            >
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px',
-                marginBottom: '6px',
+                gap: '12px',
+                marginBottom: '20px',
+                paddingBottom: '12px',
+                borderBottom: '2px solid #f1f5f9'
               }}>
-                <Home size={14} color="#667eea" />
-                <h2 style={{ fontSize: '0.8rem', fontWeight: 600, color: '#2d3748', margin: 0 }}>
-                  Hostel Information
-                </h2>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div style={{
+                  background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
+                  borderRadius: '12px',
+                  padding: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Home size={20} color="white" />
+                </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '3px', fontSize: '0.75rem', color: '#4a5568' }}>
+                  <h2 style={{ 
+                    fontSize: '1.25rem', 
+                    fontWeight: 700, 
+                    color: '#1e293b', 
+                    margin: '0 0 4px 0' 
+                  }}>
+                    Hostel Information
+                  </h2>
+                  <p style={{ 
+                    fontSize: '0.9rem', 
+                    color: '#64748b', 
+                    margin: 0 
+                  }}>
+                    Provide your accommodation details
+                  </p>
+                </div>
+              </div>
+              
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: '1fr 1fr', 
+                gap: '20px' 
+              }}>
+                <div>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '8px', 
+                    fontSize: '0.9rem', 
+                    fontWeight: 600,
+                    color: '#374151' 
+                  }}>
                     Hostel Name *
                   </label>
                   <select
@@ -212,227 +319,536 @@ const ApplyLeaveForm = () => {
                     required
                     style={{
                       width: '100%',
-                      padding: '6px 8px',
-                      fontSize: '0.8rem',
-                      border: '2px solid #d1d5db',
-                      borderRadius: '4px',
+                      padding: '14px 16px',
+                      fontSize: '0.95rem',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '12px',
                       outline: 'none',
+                      backgroundColor: '#fafafa',
+                      transition: 'all 0.2s ease',
+                      cursor: 'pointer'
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = '#1e293b';
+                      e.target.style.backgroundColor = 'white';
+                      e.target.style.boxShadow = '0 0 0 3px rgba(30, 41, 59, 0.1)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = '#e5e7eb';
+                      e.target.style.backgroundColor = '#fafafa';
+                      e.target.style.boxShadow = 'none';
                     }}
                   >
-                    <option value="">Select hostel</option>
+                    <option value="">Select your hostel</option>
                     {hostelOptions.map((hostel) => (
-                      <option key={hostel} value={hostel}>{hostel}</option>
+                      <option key={hostel} value={hostel}>{hostel} Hostel</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '3px', fontSize: '0.75rem', color: '#4a5568' }}>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '8px', 
+                    fontSize: '0.9rem', 
+                    fontWeight: 600,
+                    color: '#374151' 
+                  }}>
                     Room Number *
                   </label>
-                  <input
-                    type="text"
-                    value={formData.roomNumber}
-                    onChange={(e) => handleInputChange('roomNumber', e.target.value)}
-                    placeholder="e.g., 101, 205"
-                    required
-                    style={{
-                      width: '100%',
-                      padding: '6px 8px',
-                      fontSize: '0.8rem',
-                      border: '2px solid #d1d5db',
-                      borderRadius: '4px',
-                      outline: 'none',
-                    }}
-                  />
+                  <div style={{ position: 'relative' }}>
+                    <MapPin 
+                      size={18} 
+                      style={{ 
+                        position: 'absolute', 
+                        left: '16px', 
+                        top: '50%', 
+                        transform: 'translateY(-50%)',
+                        color: '#9ca3af'
+                      }} 
+                    />
+                    <input
+                      type="text"
+                      value={formData.roomNumber}
+                      onChange={(e) => handleInputChange('roomNumber', e.target.value)}
+                      placeholder="e.g., 101, 205, 301"
+                      required
+                      style={{
+                        width: '100%',
+                        padding: '14px 16px 14px 48px',
+                        fontSize: '0.95rem',
+                        border: '2px solid #e5e7eb',
+                        borderRadius: '12px',
+                        outline: 'none',
+                        backgroundColor: '#fafafa',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = '#667eea';
+                        e.target.style.backgroundColor = 'white';
+                        e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = '#e5e7eb';
+                        e.target.style.backgroundColor = '#fafafa';
+                        e.target.style.boxShadow = 'none';
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
-            <hr style={{ border: 'none', borderTop: '1px solid #e5e7eb', margin: '8px 0' }} />
-
-            {/* Leave Schedule */}
-            <div style={{ marginBottom: '8px' }}>
+            {/* Leave Schedule Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              style={{ marginBottom: '32px' }}
+            >
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px',
-                marginBottom: '6px',
+                gap: '12px',
+                marginBottom: '20px',
+                paddingBottom: '12px',
+                borderBottom: '2px solid #f1f5f9'
               }}>
-                <Clock size={14} color="#667eea" />
-                <h2 style={{ fontSize: '0.8rem', fontWeight: 600, color: '#2d3748', margin: 0 }}>
-                  Leave Schedule
-                </h2>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div style={{
+                  background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
+                  borderRadius: '12px',
+                  padding: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Clock size={20} color="white" />
+                </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '3px', fontSize: '0.75rem', color: '#4a5568' }}>
+                  <h2 style={{ 
+                    fontSize: '1.25rem', 
+                    fontWeight: 700, 
+                    color: '#1e293b', 
+                    margin: '0 0 4px 0' 
+                  }}>
+                    Leave Schedule
+                  </h2>
+                  <p style={{ 
+                    fontSize: '0.9rem', 
+                    color: '#64748b', 
+                    margin: 0 
+                  }}>
+                    Specify your departure and return details
+                  </p>
+                </div>
+              </div>
+              
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: '1fr 1fr', 
+                gap: '20px',
+                marginBottom: '20px'
+              }}>
+                <div>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '8px', 
+                    fontSize: '0.9rem', 
+                    fontWeight: 600,
+                    color: '#374151' 
+                  }}>
                     Exit Date *
                   </label>
-                  <input
-                    type="date"
-                    value={formData.exitDate}
-                    onChange={(e) => handleInputChange('exitDate', e.target.value)}
-                    required
-                    style={{
-                      width: '100%',
-                      padding: '6px 8px',
-                      fontSize: '0.8rem',
-                      border: '2px solid #d1d5db',
-                      borderRadius: '4px',
-                      outline: 'none',
-                    }}
-                  />
+                  <div style={{ position: 'relative' }}>
+                    <Calendar 
+                      size={18} 
+                      style={{ 
+                        position: 'absolute', 
+                        left: '16px', 
+                        top: '50%', 
+                        transform: 'translateY(-50%)',
+                        color: '#9ca3af'
+                      }} 
+                    />
+                    <input
+                      type="date"
+                      value={formData.exitDate}
+                      onChange={(e) => handleInputChange('exitDate', e.target.value)}
+                      required
+                      style={{
+                        width: '100%',
+                        padding: '14px 16px 14px 48px',
+                        fontSize: '0.95rem',
+                        border: '2px solid #e5e7eb',
+                        borderRadius: '12px',
+                        outline: 'none',
+                        backgroundColor: '#fafafa',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = '#667eea';
+                        e.target.style.backgroundColor = 'white';
+                        e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = '#e5e7eb';
+                        e.target.style.backgroundColor = '#fafafa';
+                        e.target.style.boxShadow = 'none';
+                      }}
+                    />
+                  </div>
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '3px', fontSize: '0.75rem', color: '#4a5568' }}>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '8px', 
+                    fontSize: '0.9rem', 
+                    fontWeight: 600,
+                    color: '#374151' 
+                  }}>
                     Entry Date *
                   </label>
-                  <input
-                    type="date"
-                    value={formData.entryDate}
-                    onChange={(e) => handleInputChange('entryDate', e.target.value)}
-                    required
-                    style={{
-                      width: '100%',
-                      padding: '6px 8px',
-                      fontSize: '0.8rem',
-                      border: '2px solid #d1d5db',
-                      borderRadius: '4px',
-                      outline: 'none',
-                    }}
-                  />
+                  <div style={{ position: 'relative' }}>
+                    <Calendar 
+                      size={18} 
+                      style={{ 
+                        position: 'absolute', 
+                        left: '16px', 
+                        top: '50%', 
+                        transform: 'translateY(-50%)',
+                        color: '#9ca3af'
+                      }} 
+                    />
+                    <input
+                      type="date"
+                      value={formData.entryDate}
+                      onChange={(e) => handleInputChange('entryDate', e.target.value)}
+                      required
+                      style={{
+                        width: '100%',
+                        padding: '14px 16px 14px 48px',
+                        fontSize: '0.95rem',
+                        border: '2px solid #e5e7eb',
+                        borderRadius: '12px',
+                        outline: 'none',
+                        backgroundColor: '#fafafa',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = '#667eea';
+                        e.target.style.backgroundColor = 'white';
+                        e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = '#e5e7eb';
+                        e.target.style.backgroundColor = '#fafafa';
+                        e.target.style.boxShadow = 'none';
+                      }}
+                    />
+                  </div>
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '3px', fontSize: '0.75rem', color: '#4a5568' }}>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '8px', 
+                    fontSize: '0.9rem', 
+                    fontWeight: 600,
+                    color: '#374151' 
+                  }}>
                     Exit Time *
                   </label>
-                  <input
-                    type="time"
-                    value={formData.exitTime}
-                    onChange={(e) => handleInputChange('exitTime', e.target.value)}
-                    required
-                    style={{
-                      width: '100%',
-                      padding: '6px 8px',
-                      fontSize: '0.8rem',
-                      border: '2px solid #d1d5db',
-                      borderRadius: '4px',
-                      outline: 'none',
-                    }}
-                  />
+                  <div style={{ position: 'relative' }}>
+                    <Clock 
+                      size={18} 
+                      style={{ 
+                        position: 'absolute', 
+                        left: '16px', 
+                        top: '50%', 
+                        transform: 'translateY(-50%)',
+                        color: '#9ca3af'
+                      }} 
+                    />
+                    <input
+                      type="time"
+                      value={formData.exitTime}
+                      onChange={(e) => handleInputChange('exitTime', e.target.value)}
+                      required
+                      style={{
+                        width: '100%',
+                        padding: '14px 16px 14px 48px',
+                        fontSize: '0.95rem',
+                        border: '2px solid #e5e7eb',
+                        borderRadius: '12px',
+                        outline: 'none',
+                        backgroundColor: '#fafafa',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = '#667eea';
+                        e.target.style.backgroundColor = 'white';
+                        e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = '#e5e7eb';
+                        e.target.style.backgroundColor = '#fafafa';
+                        e.target.style.boxShadow = 'none';
+                      }}
+                    />
+                  </div>
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '3px', fontSize: '0.75rem', color: '#4a5568' }}>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '8px', 
+                    fontSize: '0.9rem', 
+                    fontWeight: 600,
+                    color: '#374151' 
+                  }}>
                     Entry Time *
                   </label>
-                  <input
-                    type="time"
-                    value={formData.entryTime}
-                    onChange={(e) => handleInputChange('entryTime', e.target.value)}
-                    required
-                    style={{
-                      width: '100%',
-                      padding: '6px 8px',
-                      fontSize: '0.8rem',
-                      border: '2px solid #d1d5db',
-                      borderRadius: '4px',
-                      outline: 'none',
-                    }}
-                  />
+                  <div style={{ position: 'relative' }}>
+                    <Clock 
+                      size={18} 
+                      style={{ 
+                        position: 'absolute', 
+                        left: '16px', 
+                        top: '50%', 
+                        transform: 'translateY(-50%)',
+                        color: '#9ca3af'
+                      }} 
+                    />
+                    <input
+                      type="time"
+                      value={formData.entryTime}
+                      onChange={(e) => handleInputChange('entryTime', e.target.value)}
+                      required
+                      style={{
+                        width: '100%',
+                        padding: '14px 16px 14px 48px',
+                        fontSize: '0.95rem',
+                        border: '2px solid #e5e7eb',
+                        borderRadius: '12px',
+                        outline: 'none',
+                        backgroundColor: '#fafafa',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = '#667eea';
+                        e.target.style.backgroundColor = 'white';
+                        e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = '#e5e7eb';
+                        e.target.style.backgroundColor = '#fafafa';
+                        e.target.style.boxShadow = 'none';
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
-              <div style={{ marginTop: '8px' }}>
-                <label style={{ display: 'block', marginBottom: '3px', fontSize: '0.75rem', color: '#4a5568' }}>
+              
+              <div>
+                <label style={{ 
+                  display: 'block', 
+                  marginBottom: '8px', 
+                  fontSize: '0.9rem', 
+                  fontWeight: 600,
+                  color: '#374151' 
+                }}>
                   Reason for Leave *
                 </label>
                 <textarea
                   value={formData.reason}
                   onChange={(e) => handleInputChange('reason', e.target.value)}
-                  placeholder="Please provide a detailed reason (10-500 characters)"
-                  rows="2"
+                  placeholder="Please provide a detailed reason for your leave (minimum 10 characters)"
+                  rows="4"
                   maxLength="500"
                   required
                   style={{
                     width: '100%',
-                    padding: '6px 8px',
-                    fontSize: '0.8rem',
-                    border: formData.reason.length > 0 && formData.reason.length < 10 ? '2px solid #f87171' : '2px solid #d1d5db',
-                    borderRadius: '4px',
+                    padding: '14px 16px',
+                    fontSize: '0.95rem',
+                    border: formData.reason.length > 0 && formData.reason.length < 10 ? '2px solid #f87171' : '2px solid #e5e7eb',
+                    borderRadius: '12px',
                     outline: 'none',
+                    backgroundColor: '#fafafa',
+                    transition: 'all 0.2s ease',
                     resize: 'none',
-                    fontFamily: 'inherit',
+                    fontFamily: 'inherit'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#667eea';
+                    e.target.style.backgroundColor = 'white';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = formData.reason.length > 0 && formData.reason.length < 10 ? '#f87171' : '#e5e7eb';
+                    e.target.style.backgroundColor = '#fafafa';
+                    e.target.style.boxShadow = 'none';
                   }}
                 />
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3px', fontSize: '0.65rem', color: '#6b7280' }}>
-                  <span>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  marginTop: '8px', 
+                  fontSize: '0.8rem', 
+                  color: formData.reason.length < 10 ? '#dc2626' : '#6b7280' 
+                }}>
+                  <span style={{ fontWeight: 500 }}>
                     {formData.reason.length < 10 
                       ? `${10 - formData.reason.length} more characters required`
-                      : 'Minimum length met'}
+                      : 'Minimum length requirement met'}
                   </span>
                   <span>{formData.reason.length}/500 characters</span>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
-            <hr style={{ border: 'none', borderTop: '1px solid #e5e7eb', margin: '8px 0' }} />
-
-              {/* Emergency Contact */}
-            <div style={{ marginBottom: '8px' }}>
+            {/* Emergency Contact Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              style={{ marginBottom: '32px' }}
+            >
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px',
-                marginBottom: '6px',
+                gap: '12px',
+                marginBottom: '20px',
+                paddingBottom: '12px',
+                borderBottom: '2px solid #f1f5f9'
               }}>
-                <User size={14} color="#667eea" />
-                <h2 style={{ fontSize: '0.8rem', fontWeight: 600, color: '#2d3748', margin: 0 }}>
-                  Emergency Contact
-                </h2>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                <div style={{
+                  background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
+                  borderRadius: '12px',
+                  padding: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <User size={20} color="white" />
+                </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '3px', fontSize: '0.75rem', color: '#4a5568' }}>
+                  <h2 style={{ 
+                    fontSize: '1.25rem', 
+                    fontWeight: 700, 
+                    color: '#1e293b', 
+                    margin: '0 0 4px 0' 
+                  }}>
+                    Emergency Contact
+                  </h2>
+                  <p style={{ 
+                    fontSize: '0.9rem', 
+                    color: '#64748b', 
+                    margin: 0 
+                  }}>
+                    Provide contact details for emergency situations
+                  </p>
+                </div>
+              </div>
+              
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: '1fr 1fr 1fr', 
+                gap: '20px' 
+              }}>
+                <div>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '8px', 
+                    fontSize: '0.9rem', 
+                    fontWeight: 600,
+                    color: '#374151' 
+                  }}>
                     Contact Name *
                   </label>
                   <input
                     type="text"
-                  value={formData.emergencyContact.name}
-                  onChange={(e) => handleInputChange('emergencyContact.name', e.target.value)}
-                  placeholder="Full name"
+                    value={formData.emergencyContact.name}
+                    onChange={(e) => handleInputChange('emergencyContact.name', e.target.value)}
+                    placeholder="Full name"
                     required
                     style={{
                       width: '100%',
-                      padding: '6px 8px',
-                      fontSize: '0.8rem',
-                      border: '2px solid #d1d5db',
-                      borderRadius: '4px',
+                      padding: '14px 16px',
+                      fontSize: '0.95rem',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '12px',
                       outline: 'none',
+                      backgroundColor: '#fafafa',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = '#1e293b';
+                      e.target.style.backgroundColor = 'white';
+                      e.target.style.boxShadow = '0 0 0 3px rgba(30, 41, 59, 0.1)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = '#e5e7eb';
+                      e.target.style.backgroundColor = '#fafafa';
+                      e.target.style.boxShadow = 'none';
                     }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '3px', fontSize: '0.75rem', color: '#4a5568' }}>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '8px', 
+                    fontSize: '0.9rem', 
+                    fontWeight: 600,
+                    color: '#374151' 
+                  }}>
                     Phone Number *
                   </label>
-                  <input
-                    type="tel"
-                  value={formData.emergencyContact.phone}
-                  onChange={(e) => handleInputChange('emergencyContact.phone', e.target.value)}
-                    placeholder="10-digit number"
-                    maxLength="10"
-                    required
-                    style={{
-                      width: '100%',
-                      padding: '6px 8px',
-                      fontSize: '0.8rem',
-                      border: '2px solid #d1d5db',
-                      borderRadius: '4px',
-                      outline: 'none',
-                    }}
-                  />
+                  <div style={{ position: 'relative' }}>
+                    <Phone 
+                      size={18} 
+                      style={{ 
+                        position: 'absolute', 
+                        left: '16px', 
+                        top: '50%', 
+                        transform: 'translateY(-50%)',
+                        color: '#9ca3af'
+                      }} 
+                    />
+                    <input
+                      type="tel"
+                      value={formData.emergencyContact.phone}
+                      onChange={(e) => handleInputChange('emergencyContact.phone', e.target.value)}
+                      placeholder="10-digit number"
+                      maxLength="10"
+                      required
+                      style={{
+                        width: '100%',
+                        padding: '14px 16px 14px 48px',
+                        fontSize: '0.95rem',
+                        border: '2px solid #e5e7eb',
+                        borderRadius: '12px',
+                        outline: 'none',
+                        backgroundColor: '#fafafa',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = '#667eea';
+                        e.target.style.backgroundColor = 'white';
+                        e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = '#e5e7eb';
+                        e.target.style.backgroundColor = '#fafafa';
+                        e.target.style.boxShadow = 'none';
+                      }}
+                    />
+                  </div>
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '3px', fontSize: '0.75rem', color: '#4a5568' }}>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '8px', 
+                    fontSize: '0.9rem', 
+                    fontWeight: 600,
+                    color: '#374151' 
+                  }}>
                     Relation *
                   </label>
                   <select
@@ -441,11 +857,24 @@ const ApplyLeaveForm = () => {
                     required
                     style={{
                       width: '100%',
-                      padding: '6px 8px',
-                      fontSize: '0.8rem',
-                      border: '2px solid #d1d5db',
-                      borderRadius: '4px',
+                      padding: '14px 16px',
+                      fontSize: '0.95rem',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '12px',
                       outline: 'none',
+                      backgroundColor: '#fafafa',
+                      transition: 'all 0.2s ease',
+                      cursor: 'pointer'
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = '#1e293b';
+                      e.target.style.backgroundColor = 'white';
+                      e.target.style.boxShadow = '0 0 0 3px rgba(30, 41, 59, 0.1)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = '#e5e7eb';
+                      e.target.style.backgroundColor = '#fafafa';
+                      e.target.style.boxShadow = 'none';
                     }}
                   >
                     <option value="">Select relation</option>
@@ -455,82 +884,119 @@ const ApplyLeaveForm = () => {
                   </select>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
-            {/* Action Buttons */}
-            <div style={{
-              display: 'flex',
-              gap: '8px',
-              justifyContent: 'flex-end',
-              paddingTop: '8px',
-              borderTop: '1px solid #e2e8f0',
-              marginTop: '12px'
-            }}>
-              <button
+            {/* Professional Action Buttons */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              style={{
+                display: 'flex',
+                gap: '16px',
+                justifyContent: 'flex-end',
+                paddingTop: '24px',
+                borderTop: '2px solid #f1f5f9',
+                marginTop: '24px'
+              }}
+            >
+              <motion.button
                 type="button"
-                    disabled={loading}
+                disabled={loading}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '3px',
-                  padding: '6px 12px',
-                  fontSize: '0.75rem',
+                  gap: '8px',
+                  padding: '14px 24px',
+                  fontSize: '0.95rem',
                   fontWeight: 600,
-                  border: '2px solid #d1d5db',
-                  borderRadius: '4px',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '12px',
                   backgroundColor: 'white',
                   color: '#374151',
                   cursor: loading ? 'not-allowed' : 'pointer',
                   opacity: loading ? 0.5 : 1,
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading) {
+                    e.target.style.borderColor = '#1e293b';
+                    e.target.style.backgroundColor = '#f8fafc';
+                    e.target.style.boxShadow = '0 4px 12px rgba(30, 41, 59, 0.15)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!loading) {
+                    e.target.style.borderColor = '#e5e7eb';
+                    e.target.style.backgroundColor = 'white';
+                    e.target.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.05)';
+                  }
                 }}
               >
-                <Eye size={12} />
-                    View My Forms
-              </button>
-              <button
-                    type="submit"
-                    disabled={loading}
+                <Eye size={18} />
+                View My Forms
+              </motion.button>
+              
+              <motion.button
+                type="submit"
+                disabled={loading}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '3px',
-                  padding: '6px 16px',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
+                  gap: '8px',
+                  padding: '14px 32px',
+                  fontSize: '0.95rem',
+                  fontWeight: 700,
                   border: 'none',
-                  borderRadius: '4px',
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
                   color: 'white',
                   cursor: loading ? 'not-allowed' : 'pointer',
                   opacity: loading ? 0.7 : 1,
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 4px 12px rgba(30, 41, 59, 0.3)'
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading) {
+                    e.target.style.boxShadow = '0 6px 20px rgba(30, 41, 59, 0.4)';
+                    e.target.style.transform = 'translateY(-1px)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!loading) {
+                    e.target.style.boxShadow = '0 4px 12px rgba(30, 41, 59, 0.3)';
+                    e.target.style.transform = 'translateY(0)';
+                  }
                 }}
               >
                 {loading ? (
                   <>
-                    <div style={{
-                      width: '12px',
-                      height: '12px',
-                      border: '2px solid white',
-                      borderTopColor: 'transparent',
-                      borderRadius: '50%',
-                      animation: 'spin 1s linear infinite',
-                    }} />
+                    <Loader size={18} className="animate-spin" />
                     Submitting...
                   </>
                 ) : (
                   <>
-                    <Send size={12} />
-                    Submit Form
+                    <Send size={18} />
+                    Submit Leave Form
                   </>
                 )}
-              </button>
-            </div>
+              </motion.button>
+            </motion.div>
           </form>
         </div>
-      </div>
+      </motion.div>
+      
       <style>{`
         @keyframes spin {
           to { transform: rotate(360deg); }
+        }
+        .animate-spin {
+          animation: spin 1s linear infinite;
         }
       `}</style>
     </div>
