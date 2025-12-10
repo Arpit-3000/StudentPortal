@@ -120,7 +120,7 @@ const LeaveFormDetails = ({ formId, onBack, onEdit }) => {
       <div style={{
         display: 'flex',
         justifyContent: 'center',
-        alignItems: 'center',
+        // alignItems: 'center',
         minHeight: '400px',
         background: 'linear-gradient(to bottom right, #f7fafc, #edf2f7)',
         padding: '8px'
