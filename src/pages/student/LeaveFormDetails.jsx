@@ -8,6 +8,8 @@ const LeaveFormDetails = ({ formId, onBack, onEdit }) => {
   const [error, setError] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   const statusConfig = {
     pending: {
@@ -87,6 +89,31 @@ const LeaveFormDetails = ({ formId, onBack, onEdit }) => {
 
   const handleDeleteCancel = () => {
     setDeleteDialogOpen(false);
+  };
+
+  const handleCancelClick = () => {
+    setCancelDialogOpen(true);
+  };
+
+  const handleCancelConfirm = async () => {
+    setCancelling(true);
+    try {
+      const response = await studentAPI.cancelLeaveForm(formId);
+      
+      if (response.data.success) {
+        setCancelDialogOpen(false);
+        // Refresh the form data to show updated status
+        await fetchFormDetails();
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to cancel leave form. Please try again.');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const handleCancelCancel = () => {
+    setCancelDialogOpen(false);
   };
 
   const formatDate = (dateString) => {
@@ -573,8 +600,118 @@ const LeaveFormDetails = ({ formId, onBack, onEdit }) => {
               </button>
             )}
             {formData.status === 'pending' && (
+              <>
+                <button
+                  onClick={handleCancelClick}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 16px',
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    border: '2px solid #f59e0b',
+                    borderRadius: '6px',
+                    backgroundColor: 'white',
+                    color: '#f59e0b',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <X size={16} />
+                  Cancel Form
+                </button>
+                <button
+                  onClick={handleDeleteClick}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 16px',
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    border: 'none',
+                    borderRadius: '6px',
+                    backgroundColor: '#ef4444',
+                    color: 'white',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Trash2 size={16} />
+                  Delete Form
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Cancel Confirmation Dialog */}
+      {cancelDialogOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '24px',
+            maxWidth: '500px',
+            width: '90%',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)'
+          }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '16px', margin: 0 }}>
+              Cancel Leave Form
+            </h3>
+            <p style={{ fontSize: '0.9rem', color: '#6b7280', marginBottom: '16px', margin: '0 0 16px 0' }}>
+              Are you sure you want to cancel this leave form? You can submit a new application later if needed.
+            </p>
+            {formData && (
+              <div style={{ 
+                padding: '12px', 
+                backgroundColor: '#fef3c7', 
+                borderRadius: '6px',
+                marginBottom: '16px',
+                border: '1px solid #f59e0b'
+              }}>
+                <div style={{ fontSize: '0.8rem', color: '#92400e', marginBottom: '4px' }}>
+                  <strong>Leave Period:</strong> {formatDate(formData.exitDate)} - {formatDate(formData.entryDate)}
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#92400e', marginBottom: '4px' }}>
+                  <strong>Reason:</strong> {formData.reason?.substring(0, 100)}{formData.reason?.length > 100 ? '...' : ''}
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#92400e' }}>
+                  <strong>Current Status:</strong> {status.label}
+                </div>
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
               <button
-                onClick={handleDeleteClick}
+                onClick={handleCancelCancel}
+                disabled={cancelling}
+                style={{
+                  padding: '8px 16px',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  border: '2px solid #d1d5db',
+                  borderRadius: '6px',
+                  backgroundColor: 'white',
+                  color: '#374151',
+                  cursor: cancelling ? 'not-allowed' : 'pointer',
+                }}
+              >
+                Keep Form
+              </button>
+              <button
+                onClick={handleCancelConfirm}
+                disabled={cancelling}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -584,18 +721,35 @@ const LeaveFormDetails = ({ formId, onBack, onEdit }) => {
                   fontWeight: 600,
                   border: 'none',
                   borderRadius: '6px',
-                  backgroundColor: '#ef4444',
+                  backgroundColor: '#f59e0b',
                   color: 'white',
-                  cursor: 'pointer',
+                  cursor: cancelling ? 'not-allowed' : 'pointer',
+                  opacity: cancelling ? 0.7 : 1,
                 }}
               >
-                <Trash2 size={16} />
-                Delete Form
+                {cancelling ? (
+                  <>
+                    <div style={{
+                      width: '16px',
+                      height: '16px',
+                      border: '2px solid white',
+                      borderTopColor: 'transparent',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite',
+                    }} />
+                    Cancelling...
+                  </>
+                ) : (
+                  <>
+                    <X size={16} />
+                    Cancel Form
+                  </>
+                )}
               </button>
-            )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Delete Confirmation Dialog */}
       {deleteDialogOpen && (

@@ -1,10 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Tabs, Tab, Paper } from '@mui/material';
-import {
-  EventNote as LeaveIcon,
-  List as ListIcon,
-  Add as AddIcon,
-} from '@mui/icons-material';
+import { Box } from '@mui/material';
 import ApplyLeaveForm from './ApplyLeaveForm';
 import MyLeaveForms from './MyLeaveForms';
 import LeaveFormDetails from './LeaveFormDetails';
@@ -61,58 +56,11 @@ const LeaveManagement = () => {
 
   return (
     <Box sx={{ width: '100%' }}>
-      <Paper elevation={2} sx={{ mb: 2 }}>
-        <Tabs
-          value={activeTab}
-          onChange={handleTabChange}
-          variant="fullWidth"
-          sx={{
-            '& .MuiTab-root': {
-              minHeight: 60,
-              fontSize: '1rem',
-              fontWeight: 'medium',
-            },
-          }}
-        >
-          <Tab
-            icon={<AddIcon />}
-            label="Apply Leave"
-            iconPosition="start"
-            sx={{
-              '&.Mui-selected': {
-                color: 'primary.main',
-                backgroundColor: 'primary.light',
-              },
-            }}
-          />
-          <Tab
-            icon={<ListIcon />}
-            label="My Leave Forms"
-            iconPosition="start"
-            sx={{
-              '&.Mui-selected': {
-                color: 'primary.main',
-                backgroundColor: 'primary.light',
-              },
-            }}
-          />
-        </Tabs>
-      </Paper>
-
-      <Box sx={{ mt: 2 }}>
-        {activeTab === 0 && (
-          <ApplyLeaveForm
-            onFormSubmit={handleFormSubmit}
-            onViewForms={() => setActiveTab(1)}
-          />
-        )}
-        {activeTab === 1 && (
-          <MyLeaveForms
-            onAddNew={handleAddNew}
-            onViewForm={handleViewForm}
-          />
-        )}
-      </Box>
+      <ApplyLeaveForm
+        onFormSubmit={handleFormSubmit}
+        onViewForms={() => setActiveTab(1)}
+        onViewForm={handleViewForm}
+      />
     </Box>
   );
 };
