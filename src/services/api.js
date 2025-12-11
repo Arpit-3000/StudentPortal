@@ -66,6 +66,7 @@ export const studentAPI = {
   getMyLeaveForms: (params) => api.get('/api/leave-form/my-forms', { params }),
   getLeaveForm: (id) => api.get(`/api/leave-form/${id}`),
   deleteLeaveForm: (id) => api.delete(`/api/leave-form/${id}`),
+  cancelLeaveForm: (id) => api.put(`/api/leave-form/${id}/cancel`),
   // Gate Pass APIs
   generateGatePass: (data) => api.post('/api/gate/generate', data),
   getMyGateLogs: () => api.get('/api/gate/my-logs'),
@@ -106,6 +107,9 @@ export const nonTeachingAPI = {
   getFormDetails: (id) => api.get(`/api/non-teaching/forms/${id}`),
   verifyForm: (id, data) => api.put(`/api/non-teaching/forms/${id}/verify`, data),
   rejectForm: (id, data) => api.put(`/api/non-teaching/forms/${id}/reject-attendant`, data),
+  approveForm: (id) => api.put(`/api/non-teaching/forms/${id}/approve`),
+  rejectFormByWarden: (id, data) => api.put(`/api/non-teaching/forms/${id}/reject`, data),
+  getLeaveFormStats: () => api.get('/api/non-teaching/stats'),
 };
 
 // Guard API for gate pass management
@@ -116,6 +120,27 @@ export const guardAPI = {
   getOutsideStudents: (params) => api.get('/api/gate/outside-without-qr', { params }),
   getGateLogs: (params) => api.get('/api/gate/logs', { params }),
   getProfile: () => api.get('/api/non-teaching/profile'),
+};
+
+// Comprehensive Leave Form API (can be used by different roles)
+export const leaveFormAPI = {
+  // Student endpoints
+  submit: (data) => api.post('/api/leave-form/submit', data),
+  getMyForms: (params) => api.get('/api/leave-form/my-forms', { params }),
+  getById: (id) => api.get(`/api/leave-form/${id}`),
+  delete: (id) => api.delete(`/api/leave-form/${id}`),
+  cancel: (id) => api.put(`/api/leave-form/${id}/cancel`),
+  
+  // Non-teaching staff endpoints (will be available based on role)
+  getAllPending: (params) => api.get('/api/non-teaching/pending-forms', { params }),
+  getAllVerified: (params) => api.get('/api/non-teaching/verified-forms', { params }),
+  getAll: (params) => api.get('/api/non-teaching/all-forms', { params }),
+  getDetails: (id) => api.get(`/api/non-teaching/forms/${id}`),
+  verifyByAttendant: (id, data) => api.put(`/api/non-teaching/forms/${id}/verify`, data),
+  rejectByAttendant: (id, data) => api.put(`/api/non-teaching/forms/${id}/reject-attendant`, data),
+  approveByWarden: (id) => api.put(`/api/non-teaching/forms/${id}/approve`),
+  rejectByWarden: (id, data) => api.put(`/api/non-teaching/forms/${id}/reject`, data),
+  getStats: () => api.get('/api/non-teaching/stats'),
 };
 
 export default api;

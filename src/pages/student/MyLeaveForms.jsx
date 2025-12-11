@@ -114,6 +114,23 @@ const MyLeaveForms = ({ onAddNew, onViewForm }) => {
     setFormToDelete(null);
   };
 
+  const handleCancelForm = async (formId) => {
+    if (window.confirm('Are you sure you want to cancel this leave form?')) {
+      try {
+        setLoading(true);
+        const response = await studentAPI.cancelLeaveForm(formId);
+        
+        if (response.data.success) {
+          fetchLeaveForms(); // Refresh the list
+        }
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to cancel leave form. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-IN', {
       year: 'numeric',
@@ -543,28 +560,52 @@ const MyLeaveForms = ({ onAddNew, onViewForm }) => {
                           View
                         </motion.button>
                         {form.status === 'pending' && (
-                          <motion.button
-                            onClick={() => handleDeleteClick(form)}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              padding: '8px 16px',
-                              fontSize: '0.85rem',
-                              fontWeight: 600,
-                              border: '2px solid #ef4444',
-                              borderRadius: '8px',
-                              backgroundColor: 'white',
-                              color: '#ef4444',
-                              cursor: 'pointer',
-                              transition: 'all 0.2s ease'
-                            }}
-                          >
-                            <Trash2 size={16} />
-                            Delete
-                          </motion.button>
+                          <>
+                            <motion.button
+                              onClick={() => handleCancelForm(form.id)}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '8px 16px',
+                                fontSize: '0.85rem',
+                                fontWeight: 600,
+                                border: '2px solid #f59e0b',
+                                borderRadius: '8px',
+                                backgroundColor: 'white',
+                                color: '#f59e0b',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              <AlertCircle size={16} />
+                              Cancel
+                            </motion.button>
+                            <motion.button
+                              onClick={() => handleDeleteClick(form)}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '8px 16px',
+                                fontSize: '0.85rem',
+                                fontWeight: 600,
+                                border: '2px solid #ef4444',
+                                borderRadius: '8px',
+                                backgroundColor: 'white',
+                                color: '#ef4444',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              <Trash2 size={16} />
+                              Delete
+                            </motion.button>
+                          </>
                         )}
                       </div>
                     </div>

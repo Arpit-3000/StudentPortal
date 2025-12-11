@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { QrCode, Clock, MapPin, User, Calendar, RefreshCw, CheckCircle, XCircle, AlertCircle, Copy, Check } from 'lucide-react';
+import { QrCode, Clock, MapPin, RefreshCw, CheckCircle, XCircle, AlertCircle, Copy, Check } from 'lucide-react';
 import { studentAPI } from '../../services/api';
+
+const destinationOptions = [
+  'Una City',
+  'HPMC',
+  'Jaijon Morh',
+  'Home',
+  'Gym',
+  'Music Room',
+  'Dance Room',
+  'Transit House',
+  'Other',
+];
 
 const GatePass = () => {
   const [destination, setDestination] = useState('');
@@ -15,97 +27,20 @@ const GatePass = () => {
   const [studentInfo, setStudentInfo] = useState(null);
   const [currentStudentStatus, setCurrentStudentStatus] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [showForm, setShowForm] = useState(true);
+  const [gateLogs, setGateLogs] = useState([]);
+  const [logsLoading, setLogsLoading] = useState(true);
 
-  // localStorage keys
   const QR_STORAGE_KEY = 'student_qr_data';
   const QR_TIMER_KEY = 'student_qr_timer';
 
-  const destinationOptions = [
-   
-    'Una City',
-    'HPMC',
-    'Jaijon Morh',
-    'Home',
-    'Gym',
-    'Music Room',
-    'Dance Room',
-    'Transit House',
-    'Other',
-  ];
-
-  // Save QR data to localStorage
-  const saveQRToStorage = (qrData) => {
-    try {
-      const dataToSave = {
-        qrCode: qrData.qrCode,
-        qrToken: qrData.qrToken,
-        qrExpiry: qrData.qrExpiry,
-        studentInfo: qrData.studentInfo,
-        generatedAt: new Date().toISOString(),
-        timeLeft: 300 // 5 minutes
-      };
-      localStorage.setItem(QR_STORAGE_KEY, JSON.stringify(dataToSave));
-      localStorage.setItem(QR_TIMER_KEY, JSON.stringify({
-        startTime: Date.now(),
-        duration: 300000 // 5 minutes in milliseconds
-      }));
-    } catch (err) {
-      console.error('Error saving QR to localStorage:', err);
-    }
-  };
-
-  // Load QR data from localStorage
-  const loadQRFromStorage = () => {
-    try {
-      const savedData = localStorage.getItem(QR_STORAGE_KEY);
-      const savedTimer = localStorage.getItem(QR_TIMER_KEY);
-      
-      if (savedData && savedTimer) {
-        const qrData = JSON.parse(savedData);
-        const timerData = JSON.parse(savedTimer);
-        
-        // Calculate remaining time
-        const elapsed = Date.now() - timerData.startTime;
-        const remaining = Math.max(0, timerData.duration - elapsed);
-        
-        // If time hasn't expired, restore the QR data
-        if (remaining > 0) {
-          setQrCode(qrData.qrCode);
-          setQrToken(qrData.qrToken);
-          setQrExpiry(qrData.qrExpiry);
-          setStudentInfo(qrData.studentInfo);
-          setTimeLeft(Math.ceil(remaining / 1000)); // Convert to seconds
-          return true;
-        } else {
-          // Time expired, clear storage
-          clearQRFromStorage();
-        }
-      }
-    } catch (err) {
-      console.error('Error loading QR from localStorage:', err);
-    }
-    return false;
-  };
-
-  // Clear QR data from localStorage
-  const clearQRFromStorage = () => {
-    try {
-      localStorage.removeItem(QR_STORAGE_KEY);
-      localStorage.removeItem(QR_TIMER_KEY);
-    } catch (err) {
-      console.error('Error clearing QR from localStorage:', err);
-    }
-  };
-
   useEffect(() => {
     fetchGateStatus();
-    // Try to load QR data from localStorage on component mount
+    fetchGateLogs();
     loadQRFromStorage();
-    
-    // Listen for storage changes (when QR is processed in another tab)
+
     const handleStorageChange = (e) => {
       if (e.key === QR_STORAGE_KEY && e.newValue === null) {
-        // QR was cleared in another tab, clear it here too
         setQrCode(null);
         setQrToken(null);
         setQrExpiry(null);
@@ -113,79 +48,61 @@ const GatePass = () => {
         setSuccess('QR code was processed in another tab.');
       }
     };
-    
+
     window.addEventListener('storage', handleStorageChange);
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Check if QR was processed and remove from UI
   useEffect(() => {
-    if (qrCode && qrToken) {
-      const checkQRStatus = async () => {
-        try {
-          // Check if QR is still valid by trying to get current status
-          const response = await studentAPI.getGateStatus();
-          if (response.data.success) {
-            const newStatus = response.data.data.currentStatus;
-            // If status changed, QR was processed
-            if (currentStudentStatus && newStatus !== currentStudentStatus) {
-              setQrCode(null);
-              setQrToken(null);
-              setQrExpiry(null);
-              setTimeLeft(0);
-              setSuccess('QR code processed successfully! Your status has been updated.');
-              setCurrentStudentStatus(newStatus);
-              // Clear localStorage when QR is processed
-              clearQRFromStorage();
-              // Clear any existing intervals
-              return true; // Signal to stop checking
-            }
-          }
-        } catch (err) {
-          console.error('Error checking QR status:', err);
-        }
-        return false;
-      };
+    if (!qrCode || !qrToken) return;
 
-      // Check every 3 seconds if QR was processed
-      const interval = setInterval(async () => {
-        const shouldStop = await checkQRStatus();
-        if (shouldStop) {
-          clearInterval(interval);
-        }
-      }, 3000);
-      
-      return () => clearInterval(interval);
-    }
-  }, [qrCode, qrToken, currentStudentStatus]);
-
-  // Handle QR expiry after 5 minutes (300 seconds)
-  useEffect(() => {
-    let interval = null;
-    if (qrCode && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft(prevTime => {
-          const newTime = prevTime - 1;
-          // If time expires, clear QR code
-          if (newTime <= 0) {
+    const checkQRStatus = async () => {
+      try {
+        const response = await studentAPI.getGateStatus();
+        if (response.data.success) {
+          const newStatus = response.data.data.currentStatus;
+          if (currentStudentStatus && newStatus !== currentStudentStatus) {
             setQrCode(null);
             setQrToken(null);
             setQrExpiry(null);
-            setSuccess('QR code has expired. Please generate a new one.');
-            // Clear localStorage when QR expires
+            setTimeLeft(0);
+            setSuccess('QR code processed successfully! Your status was updated.');
+            setCurrentStudentStatus(newStatus);
             clearQRFromStorage();
-            return 0;
+            return true;
           }
-          return newTime;
-        });
-      }, 1000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
+        }
+      } catch (err) {
+        console.error('Error checking QR status:', err);
+      }
+      return false;
     };
+
+    const interval = setInterval(async () => {
+      const shouldStop = await checkQRStatus();
+      if (shouldStop) clearInterval(interval);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [qrCode, qrToken, currentStudentStatus]);
+
+  useEffect(() => {
+    if (!qrCode || timeLeft <= 0) return;
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        const next = prev - 1;
+        if (next <= 0) {
+          setQrCode(null);
+          setQrToken(null);
+          setQrExpiry(null);
+          setSuccess('QR code expired. Generate a new one.');
+          clearQRFromStorage();
+          return 0;
+        }
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
   }, [qrCode, timeLeft]);
 
   const fetchGateStatus = async () => {
@@ -200,9 +117,29 @@ const GatePass = () => {
     }
   };
 
+  const fetchGateLogs = async () => {
+    setLogsLoading(true);
+    try {
+      const response = await studentAPI.getMyGateLogs();
+      if (response.data.success) {
+        const data = response.data.data;
+        const logs = Array.isArray(data) ? data : data?.logs || [];
+        setGateLogs(logs);
+      }
+    } catch (err) {
+      console.error('Failed to fetch gate logs:', err);
+    } finally {
+      setLogsLoading(false);
+    }
+  };
+
   const handleGenerateQR = async (e) => {
     e.preventDefault();
-    // Only require destination for exit (when student is IN)
+    if (currentStudentStatus === null) {
+      setError('Fetching your current status. Please try again in 2 seconds.');
+      return;
+    }
+
     if (currentStudentStatus === 'in' && !destination.trim()) {
       setError('Please select a destination for exit');
       return;
@@ -213,46 +150,83 @@ const GatePass = () => {
     setLoading(true);
 
     try {
-      // For entry pass (when student is out), send default destination
-      // For exit pass (when student is in), send selected destination
-      const requestData = currentStudentStatus === 'out' 
-        ? { destination: 'Campus Entry' } 
-        : { destination };
+      const requestData =
+        currentStudentStatus === 'out' ? { destination: 'Campus Entry' } : { destination };
       const response = await studentAPI.generateGatePass(requestData);
-      
+
       if (response.data.success) {
         const data = response.data.data;
         setQrCode(data.qrCode);
         setQrToken(data.token);
         setQrExpiry(data.expiresAt);
         setStudentInfo(data.studentInfo);
-        setTimeLeft(300); // 5 minutes in seconds
+        setTimeLeft(300);
         setSuccess(data.message || 'Gate pass generated successfully!');
-        
-        // Save QR data to localStorage for persistence
+
         saveQRToStorage({
           qrCode: data.qrCode,
           qrToken: data.token,
           qrExpiry: data.expiresAt,
-          studentInfo: data.studentInfo
+          studentInfo: data.studentInfo,
         });
-        
-        // Refresh student status after generating QR
+
         setTimeout(() => {
           fetchGateStatus();
+          fetchGateLogs();
         }, 1000);
       } else {
         setError(response.data.message || 'Failed to generate gate pass');
       }
     } catch (err) {
       console.error('Generate gate pass error:', err);
-      if (err.response?.data?.message) {
-        setError(err.response.data.message);
-      } else {
-        setError('Failed to generate gate pass. Please try again.');
-      }
+      setError(err.response?.data?.message || 'Failed to generate gate pass. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const saveQRToStorage = (qrData) => {
+    try {
+      localStorage.setItem(QR_STORAGE_KEY, JSON.stringify({ ...qrData, generatedAt: new Date().toISOString() }));
+      localStorage.setItem(
+        QR_TIMER_KEY,
+        JSON.stringify({ startTime: Date.now(), duration: 300000 })
+      );
+    } catch (err) {
+      console.error('Error saving QR to localStorage:', err);
+    }
+  };
+
+  const loadQRFromStorage = () => {
+    try {
+      const savedData = localStorage.getItem(QR_STORAGE_KEY);
+      const savedTimer = localStorage.getItem(QR_TIMER_KEY);
+      if (savedData && savedTimer) {
+        const qrData = JSON.parse(savedData);
+        const timer = JSON.parse(savedTimer);
+        const elapsed = Date.now() - timer.startTime;
+        const remaining = Math.max(0, timer.duration - elapsed);
+        if (remaining > 0) {
+          setQrCode(qrData.qrCode);
+          setQrToken(qrData.qrToken);
+          setQrExpiry(qrData.qrExpiry);
+          setStudentInfo(qrData.studentInfo);
+          setTimeLeft(Math.ceil(remaining / 1000));
+        } else {
+          clearQRFromStorage();
+        }
+      }
+    } catch (err) {
+      console.error('Error loading QR from localStorage:', err);
+    }
+  };
+
+  const clearQRFromStorage = () => {
+    try {
+      localStorage.removeItem(QR_STORAGE_KEY);
+      localStorage.removeItem(QR_TIMER_KEY);
+    } catch (err) {
+      console.error('Error clearing QR from localStorage:', err);
     }
   };
 
@@ -262,600 +236,626 @@ const GatePass = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const formatDateDisplay = (dateString) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  const formatTimeDisplay = (from, to) => {
+    if (!from && !to) return '-';
+    const opts = { hour: '2-digit', minute: '2-digit' };
+    const fromStr = from ? new Date(from).toLocaleTimeString('en-IN', opts) : '';
+    const toStr = to ? new Date(to).toLocaleTimeString('en-IN', opts) : '';
+    if (fromStr && toStr) return `${fromStr} - ${toStr}`;
+    return fromStr || toStr;
+  };
+
   const copyToClipboard = async (text) => {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
+      setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error('Failed to copy: ', err);
-      // Fallback for older browsers
-      const textArea = document.createElement('textarea');
-      textArea.value = text;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
     }
   };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'open': return '#10b981';
-      case 'closed': return '#ef4444';
-      case 'maintenance': return '#f59e0b';
-      default: return '#6b7280';
+      case 'open':
+        return '#3b82f6';
+      case 'closed':
+        return '#ef4444';
+      case 'maintenance':
+        return '#f59e0b';
+      default:
+        return '#6b7280';
     }
   };
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'open': return <CheckCircle size={16} />;
-      case 'closed': return <XCircle size={16} />;
-      case 'maintenance': return <AlertCircle size={16} />;
-      default: return <AlertCircle size={16} />;
+      case 'open':
+        return <CheckCircle size={16} />;
+      case 'closed':
+        return <XCircle size={16} />;
+      case 'maintenance':
+        return <AlertCircle size={16} />;
+      default:
+        return <AlertCircle size={16} />;
     }
   };
 
+  const isStatusLoading = currentStudentStatus === null;
+
   return (
-    <div style={{
-      minHeight: 'calc(100vh - 70px)',
-      background: 'linear-gradient(to bottom right, #f7fafc, #edf2f7)',
-      padding: '8px',
-      display: 'flex',
-      flexDirection: 'column'
-    }}>
-      <div style={{ maxWidth: '1000px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div
+      style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+        padding: '24px',
+      }}
+    >
+      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
         {/* Header */}
-        <div style={{
-          background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-          borderRadius: '8px',
-          padding: '16px 20px',
-          marginBottom: '16px',
-          color: 'white',
-          boxShadow: '0 4px 20px rgba(59, 130, 246, 0.3)',
-          flexShrink: 0
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <QrCode size={24} />
+        <div
+          style={{
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(10px)',
+            borderRadius: '20px',
+            padding: '32px',
+            marginBottom: '24px',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
             <div>
-              <h1 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '4px', margin: 0 }}>
-                Gate Pass
+              <h1 style={{ fontSize: '2.5rem', fontWeight: 800, margin: 0, color: '#1f2937', letterSpacing: '-0.02em' }}>
+                🚪 Gate Pass System
               </h1>
-              <p style={{ fontSize: '0.9rem', opacity: 0.9, margin: 0 }}>
-                Generate QR code for campus access
+              <p style={{ marginTop: '8px', fontSize: '1.1rem', color: '#6b7280', fontWeight: 500 }}>
+                Generate QR codes for seamless campus entry & exit
               </p>
             </div>
+            <button
+              onClick={() => setShowForm((prev) => !prev)}
+              style={{
+                padding: '14px 28px',
+                borderRadius: '12px',
+                border: 'none',
+                cursor: 'pointer',
+                fontWeight: 700,
+                fontSize: '1rem',
+                background: showForm ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                color: 'white',
+                boxShadow: '0 10px 30px rgba(59, 130, 246, 0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                transition: 'all 0.3s ease',
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 15px 40px rgba(59, 130, 246, 0.5)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 10px 30px rgba(59, 130, 246, 0.4)';
+              }}
+            >
+              <QrCode size={20} />
+              {showForm ? 'Hide Form' : 'Generate QR Pass'}
+            </button>
           </div>
         </div>
 
-        {/* Gate Status */}
-        {gateStatus && (
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '8px',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-            padding: '16px',
-            marginBottom: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {getStatusIcon(gateStatus.status)}
-              <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#374151' }}>
-                Gate Status: 
-              </span>
-              <span style={{ 
-                fontSize: '0.9rem', 
-                fontWeight: 600, 
-                color: getStatusColor(gateStatus.status),
-                textTransform: 'capitalize'
-              }}>
-                {gateStatus.status}
-              </span>
-            </div>
-            <button
-              onClick={fetchGateStatus}
+        {/* Gate status & Current Status */}
+        <div style={{ display: 'grid', gridTemplateColumns: gateStatus ? '1fr 1fr' : '1fr', gap: '20px', marginBottom: '24px' }}>
+          {gateStatus && (
+            <div
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '4px 8px',
-                fontSize: '0.8rem',
-                fontWeight: 600,
-                border: '1px solid #d1d5db',
-                borderRadius: '4px',
-                backgroundColor: 'white',
-                color: '#6b7280',
-                cursor: 'pointer',
+                background: 'rgba(255, 255, 255, 0.95)',
+                backdropFilter: 'blur(10px)',
+                borderRadius: '16px',
+                boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1)',
+                padding: '24px',
+                border: '2px solid rgba(255, 255, 255, 0.5)',
               }}
             >
-              <RefreshCw size={12} />
-              Refresh
-            </button>
-          </div>
-        )}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1f2937', margin: 0 }}>Gate Status</h3>
+                <button
+                  onClick={fetchGateStatus}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 14px',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    border: '2px solid #e5e7eb',
+                    borderRadius: '8px',
+                    backgroundColor: 'white',
+                    color: '#6b7280',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.borderColor = '#3b82f6';
+                    e.currentTarget.style.color = '#3b82f6';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.borderColor = '#e5e7eb';
+                    e.currentTarget.style.color = '#6b7280';
+                  }}
+                >
+                  <RefreshCw size={14} />
+                  Refresh
+                </button>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ 
+                  padding: '12px', 
+                  borderRadius: '12px', 
+                  background: gateStatus.status === 'open' ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'linear-gradient(135deg, #ef4444, #dc2626)',
+                  boxShadow: '0 8px 20px rgba(59, 130, 246, 0.3)'
+                }}>
+                  {getStatusIcon(gateStatus.status)}
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.85rem', color: '#6b7280', fontWeight: 500 }}>Current Status</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 700, color: getStatusColor(gateStatus.status), textTransform: 'capitalize' }}>
+                    {gateStatus.status}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {currentStudentStatus && (
+            <div
+              style={{
+                background: currentStudentStatus === 'out' 
+                  ? 'linear-gradient(135deg, #fef3c7, #fde68a)' 
+                  : 'linear-gradient(135deg, #dbeafe, #bfdbfe)',
+                borderRadius: '16px',
+                boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1)',
+                padding: '24px',
+                border: '2px solid rgba(255, 255, 255, 0.8)',
+              }}
+            >
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1f2937', margin: '0 0 12px 0' }}>Your Status</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ 
+                  padding: '12px', 
+                  borderRadius: '12px', 
+                  background: currentStudentStatus === 'out' ? '#f59e0b' : '#3b82f6',
+                  color: 'white',
+                  boxShadow: '0 8px 20px rgba(0, 0, 0, 0.2)'
+                }}>
+                  {currentStudentStatus === 'out' ? <XCircle size={24} /> : <CheckCircle size={24} />}
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.85rem', color: '#374151', fontWeight: 500 }}>You are currently</div>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 800, color: currentStudentStatus === 'out' ? '#d97706' : '#2563eb', textTransform: 'uppercase' }}>
+                    {currentStudentStatus}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
-        {/* Error Alert */}
+        {/* Alerts */}
         {error && (
-          <div style={{
-            backgroundColor: '#fee',
-            border: '1px solid #fcc',
-            borderRadius: '8px',
-            padding: '16px',
-            marginBottom: '16px',
-            color: '#c00',
-          }}>
+          <div
+            style={{
+              background: 'linear-gradient(135deg, #fee2e2, #fecaca)',
+              border: '2px solid #ef4444',
+              borderRadius: '16px',
+              padding: '20px 24px',
+              marginBottom: '24px',
+              color: '#991b1b',
+              fontSize: '1rem',
+              fontWeight: 600,
+              boxShadow: '0 10px 30px rgba(239, 68, 68, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+            }}
+          >
+            <AlertCircle size={24} />
             {error}
           </div>
         )}
-
-        {/* Success Alert */}
         {success && (
-          <div style={{
-            backgroundColor: '#efe',
-            border: '1px solid #cfc',
-            borderRadius: '8px',
-            padding: '16px',
-            marginBottom: '16px',
-            color: '#060',
-          }}>
+          <div
+            style={{
+              background: 'linear-gradient(135deg, #dbeafe, #bfdbfe)',
+              border: '2px solid #3b82f6',
+              borderRadius: '16px',
+              padding: '20px 24px',
+              marginBottom: '24px',
+              color: '#1e40af',
+              fontSize: '1rem',
+              fontWeight: 600,
+              boxShadow: '0 10px 30px rgba(59, 130, 246, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+            }}
+          >
+            <CheckCircle size={24} />
             {success}
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-        {/* Generate QR Form */}
-        <div style={{
-          backgroundColor: 'white',
-          borderRadius: '8px',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-          padding: '20px',
-          display: 'flex',
-          flexDirection: 'column'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            marginBottom: '16px',
-          }}>
-            <MapPin size={18} color="#3b82f6" />
-            <h2 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#2d3748', margin: 0 }}>
-              {currentStudentStatus === 'out' ? 'Generate Entry Pass' : 'Generate Exit Pass'}
-            </h2>
-          </div>
-
-          {/* Student Status Alert */}
-          {currentStudentStatus && (
-            <div style={{
-              padding: '12px 16px',
-              backgroundColor: currentStudentStatus === 'out' ? '#fef2f2' : '#f0f9ff',
-              border: `1px solid ${currentStudentStatus === 'out' ? '#fecaca' : '#bfdbfe'}`,
-              borderRadius: '6px',
-              marginBottom: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              {currentStudentStatus === 'out' ? (
-                <>
-                  <XCircle size={16} color="#dc2626" />
-                  <div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#dc2626', marginBottom: '2px' }}>
-                      You are currently OUTSIDE campus
-                    </div>
-                    <div style={{ fontSize: '0.8rem', color: '#7f1d1d' }}>
-                      Generate a QR code to enter the campus.
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <CheckCircle size={16} color="#10b981" />
-                  <div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#10b981', marginBottom: '2px' }}>
-                      You are currently INSIDE campus
-                    </div>
-                    <div style={{ fontSize: '0.8rem', color: '#065f46' }}>
-                      Generate a QR code to exit the campus.
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-
-            <form onSubmit={handleGenerateQR} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* Only show destination field when student is IN (exiting) */}
-              {currentStudentStatus === 'in' && (
-                <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.9rem', color: '#4a5568', fontWeight: 600 }}>
-                    Destination *
-                  </label>
-                  <select
-                    value={destination}
-                    onChange={(e) => setDestination(e.target.value)}
-                    required={true}
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      fontSize: '0.9rem',
-                      border: '2px solid #d1d5db',
-                      borderRadius: '6px',
-                      outline: 'none',
-                      backgroundColor: 'white',
-                      transition: 'border-color 0.2s',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <option value="">Select destination</option>
-                    {destinationOptions.map((option) => (
-                      <option key={option} value={option}>{option}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* Show info message when student is OUT (entering) */}
-              {currentStudentStatus === 'out' && (
-                <div style={{
-                  padding: '12px 16px',
-                  backgroundColor: '#f0f9ff',
-                  border: '1px solid #bfdbfe',
-                  borderRadius: '6px',
-                  fontSize: '0.9rem',
-                  color: '#1d4ed8',
-                  textAlign: 'center'
-                }}>
-                  <strong>Entry Pass:</strong> Click generate to create your campus entry QR code. No destination selection needed.
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading || (currentStudentStatus === 'in' && !destination.trim())}
+        {/* Form + QR */}
+        {showForm && (
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+              {/* Form */}
+              <div
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  padding: '12px 16px',
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
-                  border: 'none',
-                  borderRadius: '6px',
-                  background: loading || (currentStudentStatus === 'in' && !destination.trim())
-                    ? '#9ca3af' 
-                    : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-                  color: 'white',
-                  cursor: loading || (currentStudentStatus === 'in' && !destination.trim()) ? 'not-allowed' : 'pointer',
-                  opacity: loading || (currentStudentStatus === 'in' && !destination.trim()) ? 0.7 : 1,
+                  background: 'rgba(255, 255, 255, 0.95)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: '20px',
+                  boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15)',
+                  padding: '32px',
+                  border: '2px solid rgba(255, 255, 255, 0.5)',
                 }}
               >
-                {loading ? (
-                  <>
-                    <div style={{
-                      width: '16px',
-                      height: '16px',
-                      border: '2px solid white',
-                      borderTopColor: 'transparent',
-                      borderRadius: '50%',
-                      animation: 'spin 1s linear infinite',
-                    }} />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <QrCode size={16} />
-                    Generate {currentStudentStatus === 'out' ? 'Entry' : 'Exit'} QR Code
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
-
-          {/* QR Code Display */}
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '8px',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-            padding: '20px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: '300px'
-          }}>
-            {qrCode ? (
-              <div style={{ textAlign: 'center' }}>
-                <div style={{
-                  width: '200px',
-                  height: '200px',
-                  backgroundColor: '#f8fafc',
-                  border: '2px solid #e2e8f0',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: '16px',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}>
-                  <img 
-                    src={qrCode} 
-                    alt="Gate Pass QR Code"
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'contain',
-                      borderRadius: '6px'
-                    }}
-                  />
-                </div>
-
-                <div style={{ marginBottom: '12px' }}>
-                  <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '4px' }}>
-                    {currentStudentStatus === 'out' ? 'Entry Type' : 'Destination'}
-                  </div>
-                  <div style={{ fontSize: '1rem', fontWeight: 600, color: '#374151' }}>
-                    {currentStudentStatus === 'out' ? 'Campus Entry' : destination}
-                  </div>
-                </div>
-
-                {studentInfo && (
-                  <div style={{ marginBottom: '12px' }}>
-                    <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '4px' }}>
-                      Student Info
-                    </div>
-                    <div style={{ fontSize: '0.9rem', color: '#374151' }}>
-                      <div style={{ fontWeight: 600 }}>{studentInfo.name}</div>
-                      <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
-                        Roll: {studentInfo.rollNumber} | Status: {studentInfo.currentStatus}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* JWT Token Display */}
-                {qrToken && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
                   <div style={{ 
-                    marginBottom: '12px', 
-                    width: '100%',
-                    maxWidth: '400px'
+                    padding: '12px', 
+                    borderRadius: '12px', 
+                    background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                    boxShadow: '0 8px 20px rgba(59, 130, 246, 0.3)'
                   }}>
-                    <div style={{ 
-                      fontSize: '0.8rem', 
-                      color: '#6b7280', 
-                      marginBottom: '8px',
+                    <MapPin size={24} color="white" />
+                  </div>
+                  <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, color: '#1f2937' }}>
+                    {currentStudentStatus === 'out' ? '🔓 Entry Pass' : '🚪 Exit Pass'}
+                  </h2>
+                </div>
+
+                <form onSubmit={handleGenerateQR} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  {currentStudentStatus === 'in' && (
+                    <div>
+                      <label style={{ display: 'block', marginBottom: 10, fontSize: '1rem', fontWeight: 700, color: '#374151' }}>
+                        📍 Select Destination *
+                      </label>
+                      <select
+                        value={destination}
+                        onChange={(e) => setDestination(e.target.value)}
+                        required
+                        style={{
+                          width: '100%',
+                          padding: '16px 20px',
+                          borderRadius: '12px',
+                          border: '2px solid #e5e7eb',
+                          backgroundColor: 'white',
+                          fontSize: '1rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          color: '#1f2937',
+                          transition: 'all 0.2s',
+                        }}
+                        onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                        onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                      >
+                        <option value="">Choose where you're going...</option>
+                        {destinationOptions.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {currentStudentStatus === 'out' && (
+                    <div
+                      style={{
+                        padding: '20px',
+                        background: 'linear-gradient(135deg, #dbeafe, #bfdbfe)',
+                        border: '2px solid #3b82f6',
+                        borderRadius: '12px',
+                        color: '#1e40af',
+                        fontSize: '1rem',
+                        fontWeight: 600,
+                        textAlign: 'center',
+                      }}
+                    >
+                      🔓 <strong>Entry Pass:</strong> No destination needed. Click generate to enter campus!
+                    </div>
+                  )}
+
+                  <button
+                    type='submit'
+                    disabled={isStatusLoading || loading || (currentStudentStatus === 'in' && !destination.trim())}
+                    style={{
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'space-between'
-                    }}>
-                      <span>JWT Token</span>
-                      <button
-                        onClick={() => copyToClipboard(qrToken)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          padding: '4px 8px',
-                          fontSize: '0.7rem',
-                          fontWeight: 600,
-                          border: '1px solid #d1d5db',
-                          borderRadius: '4px',
-                          backgroundColor: copied ? '#10b981' : 'white',
-                          color: copied ? 'white' : '#6b7280',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        {copied ? <Check size={12} /> : <Copy size={12} />}
-                        {copied ? 'Copied!' : 'Copy'}
-                      </button>
-                    </div>
-                    <div style={{
-                      padding: '8px 12px',
-                      backgroundColor: '#f8fafc',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '6px',
-                      fontSize: '0.7rem',
-                      fontFamily: 'monospace',
-                      color: '#374151',
-                      wordBreak: 'break-all',
-                      lineHeight: '1.4',
-                      maxHeight: '80px',
-                      overflow: 'auto'
-                    }}>
-                      {qrToken}
-                    </div>
-                  </div>
-                )}
+                      justifyContent: 'center',
+                      gap: '12px',
+                      padding: '18px 24px',
+                      borderRadius: '12px',
+                      border: 'none',
+                      fontWeight: 800,
+                      color: '#fff',
+                      fontSize: '1.1rem',
+                      background:
+                        isStatusLoading || loading || (currentStudentStatus === 'in' && !destination.trim())
+                          ? 'linear-gradient(135deg, #9ca3af, #6b7280)'
+                          : 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                      cursor:
+                        isStatusLoading || loading || (currentStudentStatus === 'in' && !destination.trim())
+                          ? 'not-allowed'
+                          : 'pointer',
+                      boxShadow:
+                        isStatusLoading || loading || (currentStudentStatus === 'in' && !destination.trim())
+                          ? 'none'
+                          : '0 15px 40px rgba(59, 130, 246, 0.4)',
+                      transition: 'all 0.3s ease',
+                      transform: 'scale(1)',
+                    }}
+                    onMouseOver={(e) => {
+                      if (!isStatusLoading && !loading && !(currentStudentStatus === 'in' && !destination.trim())) {
+                        e.currentTarget.style.transform = 'scale(1.02)';
+                      }
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }}
+                  >
+                    {isStatusLoading || loading ? (
+                      <>
+                        <div
+                          style={{
+                            width: 20,
+                            height: 20,
+                            border: '3px solid white',
+                            borderTopColor: 'transparent',
+                            borderRadius: '50%',
+                            animation: 'spin 1s linear infinite',
+                          }}
+                        />
+                        {isStatusLoading ? 'Preparing...' : 'Generating...'}
+                      </>
+                    ) : (
+                      <>
+                        <QrCode size={22} />
+                        Generate {currentStudentStatus === 'out' ? 'Entry' : 'Exit'} QR Pass
+                      </>
+                    )}
+                  </button>
+                </form>
+              </div>
 
-                <div style={{
-                  padding: '8px 16px',
-                  backgroundColor: timeLeft < 60 ? '#fef2f2' : '#f0f9ff',
-                  border: `1px solid ${timeLeft < 60 ? '#fecaca' : '#bfdbfe'}`,
-                  borderRadius: '6px',
-                  fontSize: '0.8rem',
-                  color: timeLeft < 60 ? '#dc2626' : '#1d4ed8',
-                  fontWeight: 600,
+              {/* QR Preview */}
+              <div
+                style={{
+                  background: qrCode ? 'linear-gradient(135deg, #ffffff, #f3f4f6)' : 'rgba(255, 255, 255, 0.95)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: '20px',
+                  boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15)',
+                  padding: '32px',
                   display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '6px'
-                }}>
-                  <Clock size={14} />
-                  {timeLeft < 60 ? `Expires in ${formatTime(timeLeft)}` : `Valid for ${formatTime(timeLeft)}`}
-                </div>
+                  minHeight: 500,
+                  border: '2px solid rgba(255, 255, 255, 0.5)',
+                }}
+              >
+                {qrCode ? (
+                  <div style={{ textAlign: 'center', width: '100%' }}>
+                    <div
+                      style={{
+                        width: 280,
+                        height: 280,
+                        background: 'white',
+                        border: '4px solid #e5e7eb',
+                        borderRadius: 20,
+                        margin: '0 auto 24px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 15px 40px rgba(0, 0, 0, 0.1)',
+                        padding: '16px',
+                      }}
+                    >
+                      <img src={qrCode} alt='Gate QR' style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '12px' }} />
+                    </div>
+                    
+                    <div style={{ 
+                      marginBottom: 20, 
+                      padding: '16px 24px', 
+                      background: 'linear-gradient(135deg, #dbeafe, #bfdbfe)',
+                      borderRadius: '12px',
+                      border: '2px solid #3b82f6'
+                    }}>
+                      <div style={{ fontSize: '0.9rem', color: '#1e40af', marginBottom: 6, fontWeight: 600 }}>
+                        {currentStudentStatus === 'out' ? '🔓 Entry Type' : '📍 Destination'}
+                      </div>
+                      <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#1e3a8a' }}>
+                        {currentStudentStatus === 'out' ? 'Campus Entry' : destination}
+                      </div>
+                    </div>
+                    
+                    {studentInfo && (
+                      <div style={{ 
+                        marginBottom: 20, 
+                        padding: '16px 24px', 
+                        background: 'linear-gradient(135deg, #f3e8ff, #e9d5ff)',
+                        borderRadius: '12px',
+                        border: '2px solid #a855f7'
+                      }}>
+                        <div style={{ fontSize: '0.9rem', color: '#7e22ce', marginBottom: 6, fontWeight: 600 }}>👤 Student Info</div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#6b21a8', marginBottom: 4 }}>{studentInfo.name}</div>
+                        <div style={{ fontSize: '0.9rem', color: '#7e22ce', fontWeight: 600 }}>
+                          Roll: {studentInfo.rollNumber} • Status: {studentInfo.currentStatus.toUpperCase()}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div
+                      style={{
+                        padding: '14px 24px',
+                        background: timeLeft < 60 
+                          ? 'linear-gradient(135deg, #fee2e2, #fecaca)' 
+                          : 'linear-gradient(135deg, #dbeafe, #bfdbfe)',
+                        border: `3px solid ${timeLeft < 60 ? '#ef4444' : '#3b82f6'}`,
+                        borderRadius: 12,
+                        fontWeight: 800,
+                        color: timeLeft < 60 ? '#991b1b' : '#1e40af',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        fontSize: '1.1rem',
+                        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
+                      }}
+                    >
+                      <Clock size={20} />
+                      {timeLeft < 60 ? `⚠️ Expires in ${formatTime(timeLeft)}` : `✅ Valid for ${formatTime(timeLeft)}`}
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', color: '#6b7280' }}>
+                    <div style={{ 
+                      padding: '32px', 
+                      borderRadius: '20px', 
+                      background: 'linear-gradient(135deg, #f3f4f6, #e5e7eb)',
+                      marginBottom: 24 
+                    }}>
+                      <QrCode size={80} style={{ opacity: 0.3 }} />
+                    </div>
+                    <h3 style={{ margin: '0 0 12px', fontSize: '1.5rem', fontWeight: 800, color: '#374151' }}>No QR Pass Yet</h3>
+                    <p style={{ margin: 0, fontSize: '1.1rem', color: '#6b7280', fontWeight: 500 }}>
+                      {currentStudentStatus === 'out'
+                        ? '🔓 Generate a QR code to enter the campus'
+                        : '🚪 Choose a destination and generate your exit pass'}
+                    </p>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div style={{
-                textAlign: 'center',
-                color: '#6b7280'
-              }}>
-                <QrCode size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '8px', margin: '0 0 8px 0' }}>
-                  No QR Code Generated
-                </h3>
-                <p style={{ fontSize: '0.9rem', margin: 0 }}>
-                  {currentStudentStatus === 'out' 
-                    ? 'Generate a QR code to enter the campus' 
-                    : 'Select a destination and generate a QR code to exit the campus'
-                  }
-                </p>
-              </div>
-            )}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Instructions */}
-        <div style={{
-          backgroundColor: 'white',
-          borderRadius: '8px',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-          padding: '20px',
-          marginTop: '16px'
-        }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '12px', margin: '0 0 12px 0', color: '#2d3748' }}>
-            {currentStudentStatus === 'out' ? 'How to Enter Campus' : 'How to Exit Campus'}
-          </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
-            {currentStudentStatus === 'out' ? (
-              <>
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  <div style={{
-                    width: '32px',
-                    height: '32px',
-                    backgroundColor: '#ef4444',
-                    color: 'white',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '0.9rem',
-                    fontWeight: 600,
-                    flexShrink: 0
-                  }}>
-                    1
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                      Generate QR Code
-                    </div>
-                    <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
-                      Click generate to create your entry pass
-                    </div>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  <div style={{
-                    width: '32px',
-                    height: '32px',
-                    backgroundColor: '#ef4444',
-                    color: 'white',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '0.9rem',
-                    fontWeight: 600,
-                    flexShrink: 0
-                  }}>
-                    2
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                      Show to Guard
-                    </div>
-                    <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
-                      Present the QR code to the security guard
-                    </div>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  <div style={{
-                    width: '32px',
-                    height: '32px',
-                    backgroundColor: '#3b82f6',
-                    color: 'white',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '0.9rem',
-                    fontWeight: 600,
-                    flexShrink: 0
-                  }}>
-                    1
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                      Select Destination
-                    </div>
-                    <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
-                      Choose where you're going outside campus
-                    </div>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  <div style={{
-                    width: '32px',
-                    height: '32px',
-                    backgroundColor: '#3b82f6',
-                    color: 'white',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '0.9rem',
-                    fontWeight: 600,
-                    flexShrink: 0
-                  }}>
-                    2
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                      Generate QR Code
-                    </div>
-                    <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
-                      Click generate to create your exit pass
-                    </div>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  <div style={{
-                    width: '32px',
-                    height: '32px',
-                    backgroundColor: '#3b82f6',
-                    color: 'white',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '0.9rem',
-                    fontWeight: 600,
-                    flexShrink: 0
-                  }}>
-                    3
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                      Show to Guard
-                    </div>
-                    <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
-                      Present the QR code to the security guard
-                    </div>
-                  </div>
-                </div>
-              </>
+        {/* Recent gate passes */}
+        <div>
+          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#1f2937', marginBottom: '20px', textShadow: '0 2px 4px rgba(0, 0, 0, 0.1)' }}>
+            📋 Recent Gate Passes
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {!logsLoading && gateLogs.length === 0 && (
+              <div
+                style={{
+                  background: 'rgba(255, 255, 255, 0.95)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: 16,
+                  padding: '32px',
+                  boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1)',
+                  textAlign: 'center',
+                  color: '#6b7280',
+                  border: '2px solid rgba(255, 255, 255, 0.5)',
+                }}
+              >
+                <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🎫</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#374151' }}>No recent gate passes yet</div>
+                <div style={{ fontSize: '1rem', marginTop: '8px' }}>Generate your first pass to see it here!</div>
+              </div>
             )}
+
+            {logsLoading && (
+              <div
+                style={{
+                  background: 'rgba(255, 255, 255, 0.95)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: 16,
+                  padding: '32px',
+                  boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1)',
+                  textAlign: 'center',
+                  color: '#6b7280',
+                  border: '2px solid rgba(255, 255, 255, 0.5)',
+                }}
+              >
+                <div style={{ fontSize: '1.1rem', fontWeight: 600 }}>⏳ Loading your recent gate passes…</div>
+              </div>
+            )}
+
+            {gateLogs.slice(0, 5).map((log, index) => {
+              const status = log.status || 'pending';
+              const isApproved = status === 'processed';
+              const isPending = status === 'pending';
+              const statusLabel = isApproved ? '✅ Approved' : isPending ? '⏳ Pending' : '❌ ' + status;
+              const statusColor = isApproved ? '#1e40af' : isPending ? '#92400e' : '#991b1b';
+              const statusBg = isApproved ? 'linear-gradient(135deg, #dbeafe, #bfdbfe)' : isPending ? 'linear-gradient(135deg, #fef3c7, #fde68a)' : 'linear-gradient(135deg, #fee2e2, #fecaca)';
+
+              return (
+                <div
+                  key={log._id || index}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.95)',
+                    backdropFilter: 'blur(10px)',
+                    borderRadius: 16,
+                    padding: '24px',
+                    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 20,
+                    border: '2px solid rgba(255, 255, 255, 0.5)',
+                    transition: 'all 0.3s ease',
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.boxShadow = '0 20px 60px rgba(0, 0, 0, 0.15)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 10px 40px rgba(0, 0, 0, 0.1)';
+                  }}
+                >
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#1f2937', marginBottom: 8 }}>
+                      {log.action === 'exit' ? '🚪' : '🔓'} {log.destination || 'Gate Visit'}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: '0.95rem', color: '#6b7280', fontWeight: 600 }}>
+                      <span>📅 {formatDateDisplay(log.issuedAt || log.createdAt)}</span>
+                      <span>•</span>
+                      <span>⏰ {formatTimeDisplay(log.issuedAt, log.scannedAt || log.expiresAt)}</span>
+                    </div>
+                    <div style={{ marginTop: 8, fontSize: '0.95rem', color: '#9ca3af', fontWeight: 600 }}>
+                      {log.action === 'exit' ? '→ Leaving campus' : '← Entering campus'}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div
+                      style={{
+                        padding: '10px 20px',
+                        borderRadius: '12px',
+                        background: statusBg,
+                        color: statusColor,
+                        fontSize: '0.95rem',
+                        fontWeight: 800,
+                        border: `2px solid ${statusColor}`,
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                      }}
+                    >
+                      {statusLabel}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
