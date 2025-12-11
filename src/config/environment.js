@@ -8,7 +8,7 @@ export const config = {
   GMAIL_SCOPES: import.meta.env.VITE_GMAIL_SCOPES || 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
   DRIVE_SCOPES: import.meta.env.VITE_DRIVE_SCOPES || 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
   CLASSROOM_SCOPES: import.meta.env.VITE_CLASSROOM_SCOPES || 'https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.coursework.me https://www.googleapis.com/auth/classroom.announcements.readonly https://www.googleapis.com/auth/classroom.rosters.readonly https://www.googleapis.com/auth/classroom.profile.emails https://www.googleapis.com/auth/classroom.profile.photos https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
-  CALENDAR_SCOPES: import.meta.env.CALENDAR_SCOPES || 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+  CALENDAR_SCOPES: import.meta.env.VITE_CALENDAR_SCOPES || 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
 };
 
 export default config;
