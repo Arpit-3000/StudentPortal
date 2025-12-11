@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Box,
@@ -9,28 +9,22 @@ import {
   ListItemIcon,
   ListItemText,
   Typography,
-  Divider,
   IconButton,
-  Tooltip,
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
-  School as SchoolIcon,
+  School as ClassroomIcon,
   MenuBook as LibraryIcon,
-  EventAvailable as AttendanceIcon,
+  CreditCard as GatePassIcon,
   EventNote as LeaveIcon,
-  Assignment as AssignmentIcon,
-  Assessment as AssessmentIcon,
-  Description as DocumentIcon,
-  Settings as SettingsIcon,
-  Logout as LogoutIcon,
+  Email as MailIcon,
+  DriveFolderUpload as DrivesIcon,
+  Person as ProfileIcon,
   LocalDining as CanteenIcon,
-  School as AdmissionIcon,
-  Notifications as NotificationIcon,
-  Search as SearchIcon,
-  QrCode as QrCodeIcon,
-  Email as EmailIcon,
-  CloudUpload as CloudUploadIcon,
+  Favorite as HealthIcon,
+  Settings as SettingsIcon,
+  ChevronLeft as CollapseIcon,
+  CalendarToday as CalendarIcon,
 } from '@mui/icons-material';
 
 const PremiumSidebar = ({ 
@@ -42,80 +36,69 @@ const PremiumSidebar = ({
   onLogout, 
   onProfileClick 
 }) => {
-  const drawerWidth = 240;
+  const [collapsed, setCollapsed] = useState(false);
+  const drawerWidth = collapsed ? 64 : 240;
 
   const navigationItems = [
     {
       id: 'dashboard',
       label: 'Dashboard',
       icon: <DashboardIcon />,
-      color: '#6366f1',
     },
     {
-      id: 'myclassroom',
-      label: 'My Classroom',
-      icon: <SchoolIcon />,
-      color: '#8b5cf6',
+      id: 'classroom',
+      label: 'Classroom',
+      icon: <ClassroomIcon />,
     },
     {
       id: 'library',
       label: 'Library',
       icon: <LibraryIcon />,
-      color: '#06b6d4',
     },
     {
-      id: 'attendance',
-      label: 'Attendance',
-      icon: <AttendanceIcon />,
-      color: '#10b981',
+      id: 'gatepass',
+      label: 'Gate Pass',
+      icon: <GatePassIcon />,
     },
     {
       id: 'applyleave',
       label: 'Apply Leave',
       icon: <LeaveIcon />,
-      color: '#f59e0b',
     },
     {
-      id: 'gatepass',
-      label: 'Gate Pass',
-      icon: <QrCodeIcon />,
-      color: '#3b82f6',
+      id: 'mailnotices',
+      label: 'Mails & Notices',
+      icon: <MailIcon />,
     },
     {
-      id: 'assignments',
-      label: 'Assignments',
-      icon: <AssignmentIcon />,
-      color: '#ef4444',
+      id: 'googledrive',
+      label: 'Drives',
+      icon: <DrivesIcon />,
     },
     {
-      id: 'results',
-      label: 'Results',
-      icon: <AssessmentIcon />,
-      color: '#84cc16',
+      id: 'calendar',
+      label: 'Calendar',
+      icon: <CalendarIcon />,
+    },
+    {
+      id: 'profile',
+      label: 'Profile',
+      icon: <ProfileIcon />,
     },
     {
       id: 'canteen',
       label: 'Canteen',
       icon: <CanteenIcon />,
-      color: '#f97316',
     },
     {
-      id: 'documents',
-      label: 'Documents',
-      icon: <DocumentIcon />,
-      color: '#6366f1',
+      id: 'health',
+      label: 'Health',
+      icon: <HealthIcon />,
     },
     {
-      id: 'mailnotices',
-      label: 'Mail & Notices',
-      icon: <EmailIcon />,
-      color: '#ec4899',
-    },
-    {
-      id: 'googledrive',
-      label: 'Google Drive',
-      icon: <CloudUploadIcon />,
-      color: '#4285f4',
+      id: 'settings',
+      label: 'Settings',
+      icon: <SettingsIcon />,
     },
   ];
 
@@ -125,38 +108,27 @@ const PremiumSidebar = ({
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
-        borderRight: '1px solid #e2e8f0',
+        backgroundColor: '#f9fafb',
+        borderRight: '1px solid #e5e7eb',
       }}
     >
-      {/* Header */}
-      <Box sx={{ p: 2, borderBottom: '1px solid #e2e8f0' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Box
-            sx={{
-              width: 32,
-              height: 32,
-              borderRadius: 1.5,
-              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              mr: 1.5,
-            }}
-          >
-            <SchoolIcon sx={{ color: 'white', fontSize: 16 }} />
-          </Box>
-          <Box>
-            <Typography variant="h6" sx={{ fontWeight: 700, color: '#1e293b', fontSize: '1.1rem' }}>
-              Altius
-            </Typography>
-            <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.75rem' }}>
-              Student Portal
-            </Typography>
-          </Box>
-        </Box>
+      {/* Collapse Button */}
+      <Box sx={{ p: 1, display: 'flex', justifyContent: collapsed ? 'center' : 'flex-end', borderBottom: '1px solid #e5e7eb' }}>
+        <IconButton
+          onClick={() => setCollapsed(!collapsed)}
+          sx={{
+            width: 24,
+            height: 24,
+            color: '#64748b',
+            '&:hover': {
+              backgroundColor: '#f3f4f6',
+              color: '#16a34a',
+            },
+          }}
+        >
+          <CollapseIcon sx={{ fontSize: 16, transform: collapsed ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s ease' }} />
+        </IconButton>
       </Box>
-
 
       {/* Navigation Menu */}
       <Box 
@@ -171,110 +143,79 @@ const PremiumSidebar = ({
             background: 'transparent',
           },
           '&::-webkit-scrollbar-thumb': {
-            background: '#cbd5e1',
+            background: '#d1d5db',
             borderRadius: '2px',
           },
           '&::-webkit-scrollbar-thumb:hover': {
-            background: '#94a3b8',
+            background: '#9ca3af',
           },
         }}
       >
-        <List sx={{ px: 1.5 }}>
+        <List sx={{ px: collapsed ? 0.5 : 1 }}>
           {navigationItems.map((item, index) => (
             <motion.div
               key={item.id}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.05 }}
+              transition={{ delay: index * 0.03 }}
             >
-              <ListItem disablePadding sx={{ mb: 0.25 }}>
+              <ListItem disablePadding sx={{ mb: 0.25, px: collapsed ? 0.5 : 1 }}>
                 <ListItemButton
                   selected={selectedOption === item.id}
-                  onClick={() => onOptionSelect(item.id)}
+                  onClick={() => {
+                    if (item.id === 'profile') {
+                      onProfileClick();
+                    } else {
+                      onOptionSelect(item.id);
+                    }
+                  }}
                   sx={{
                     borderRadius: 1.5,
-                    py: 1,
-                    px: 1.5,
+                    py: 1.25,
+                    px: collapsed ? 1 : 1.5,
+                    minHeight: 44,
+                    justifyContent: collapsed ? 'center' : 'flex-start',
                     transition: 'all 0.2s ease',
                     '&.Mui-selected': {
-                      backgroundColor: `${item.color}15`,
-                      color: item.color,
+                      backgroundColor: '#d1fae5',
+                      color: '#16a34a',
                       '&:hover': {
-                        backgroundColor: `${item.color}20`,
+                        backgroundColor: '#a7f3d0',
                       },
                       '& .MuiListItemIcon-root': {
-                        color: item.color,
-                      },
-                      '&::before': {
-                        content: '""',
-                        position: 'absolute',
-                        left: 0,
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        width: 3,
-                        height: 16,
-                        backgroundColor: item.color,
-                        borderRadius: '0 2px 2px 0',
+                        color: '#16a34a',
                       },
                     },
                     '&:hover': {
-                      backgroundColor: '#f8fafc',
-                      transform: 'translateX(2px)',
+                      backgroundColor: '#f3f4f6',
                     },
                   }}
                 >
                   <ListItemIcon
                     sx={{
-                      minWidth: 32,
-                      color: selectedOption === item.id ? item.color : '#64748b',
+                      minWidth: collapsed ? 0 : 40,
+                      color: selectedOption === item.id ? '#16a34a' : '#64748b',
                       transition: 'all 0.2s ease',
+                      justifyContent: 'center',
                     }}
                   >
                     {item.icon}
                   </ListItemIcon>
-                  <ListItemText
-                    primary={item.label}
-                    primaryTypographyProps={{
-                      fontSize: '0.85rem',
-                      fontWeight: selectedOption === item.id ? 600 : 500,
-                      color: selectedOption === item.id ? item.color : '#475569',
-                    }}
-                  />
+                  {!collapsed && (
+                    <ListItemText
+                      primary={item.label}
+                      primaryTypographyProps={{
+                        fontSize: '0.875rem',
+                        fontWeight: selectedOption === item.id ? 600 : 500,
+                        color: selectedOption === item.id ? '#16a34a' : '#374151',
+                      }}
+                    />
+                  )}
                 </ListItemButton>
               </ListItem>
             </motion.div>
           ))}
         </List>
-      </Box>
-
-      {/* Footer Actions */}
-      <Box sx={{ p: 1.5, borderTop: '1px solid #e2e8f0' }}>
-        <Box
-          onClick={onLogout}
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            p: 1,
-            borderRadius: 1.5,
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            '&:hover': {
-              backgroundColor: '#fef2f2',
-            },
-          }}
-        >
-          <LogoutIcon sx={{ color: '#dc2626', fontSize: 16, mr: 1 }} />
-          <Typography
-            variant="body2"
-            sx={{
-              color: '#dc2626',
-              fontWeight: 500,
-              fontSize: '0.8rem',
-            }}
-          >
-            Sign Out
-          </Typography>
-        </Box>
       </Box>
     </Box>
   );
@@ -293,7 +234,7 @@ const PremiumSidebar = ({
           display: { xs: 'block', md: 'none' },
           '& .MuiDrawer-paper': {
             boxSizing: 'border-box',
-            width: 240,
+            width: drawerWidth,
             border: 'none',
           },
         }}
@@ -308,10 +249,11 @@ const PremiumSidebar = ({
           position: 'fixed',
           top: 0,
           left: 0,
-          width: 240,
+          width: drawerWidth,
           height: '100vh',
           zIndex: 1000,
           overflow: 'hidden',
+          transition: 'width 0.3s ease',
         }}
       >
         {drawerContent}

@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import gmailService from '../services/gmailService';
 import driveService from '../services/driveService';
+import classroomService from '../services/classroomService';
+import calendarService from '../services/calendarService';
 
 const GoogleAuthContext = createContext();
 
@@ -21,6 +23,20 @@ export const GoogleAuthProvider = ({ children }) => {
   });
   
   const [driveAuth, setDriveAuth] = useState({
+    isSignedIn: false,
+    user: null,
+    accessToken: null,
+    loading: false
+  });
+
+  const [classroomAuth, setClassroomAuth] = useState({
+    isSignedIn: false,
+    user: null,
+    accessToken: null,
+    loading: false
+  });
+
+  const [calendarAuth, setCalendarAuth] = useState({
     isSignedIn: false,
     user: null,
     accessToken: null,
@@ -89,11 +105,39 @@ export const GoogleAuthProvider = ({ children }) => {
       } else {
         console.log('No Drive token found');
       }
+
+      // Load Classroom auth state
+      const classroomToken = localStorage.getItem('classroom_access_token');
+      const classroomUser = localStorage.getItem('classroom_user');
+      
+      if (classroomToken && classroomUser) {
+        console.log('Found Classroom token, validating...');
+        // Verify token is still valid
+        const isValid = await classroomService.isSignedIn();
+        if (isValid) {
+          console.log('Classroom token is valid, restoring session');
+          setClassroomAuth({
+            isSignedIn: true,
+            user: JSON.parse(classroomUser),
+            accessToken: classroomToken,
+            loading: false
+          });
+          // Set the token in the service
+          classroomService.accessToken = classroomToken;
+        } else {
+          console.log('Classroom token is invalid, clearing');
+          // Token is invalid, clear it
+          clearClassroomAuth();
+        }
+      } else {
+        console.log('No Classroom token found');
+      }
     } catch (error) {
       console.error('Error loading auth state:', error);
       // Clear invalid auth data
       clearGmailAuth();
       clearDriveAuth();
+      clearClassroomAuth();
     }
   };
 
@@ -189,6 +233,98 @@ export const GoogleAuthProvider = ({ children }) => {
     }
   };
 
+  const signInClassroom = async () => {
+    setClassroomAuth(prev => ({ ...prev, loading: true }));
+    
+    try {
+      const result = await classroomService.signIn();
+      
+      if (result.success) {
+        const userData = {
+          name: result.user.getName(),
+          email: result.user.getEmail(),
+          imageUrl: result.user.getImageUrl()
+        };
+        
+        // Store in localStorage
+        localStorage.setItem('classroom_access_token', result.accessToken);
+        localStorage.setItem('classroom_user', JSON.stringify(userData));
+        
+        setClassroomAuth({
+          isSignedIn: true,
+          user: userData,
+          accessToken: result.accessToken,
+          loading: false
+        });
+        
+        return { success: true };
+      } else {
+        setClassroomAuth(prev => ({ ...prev, loading: false }));
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      setClassroomAuth(prev => ({ ...prev, loading: false }));
+      return { success: false, error: error.message };
+    }
+  };
+
+  const signOutClassroom = async () => {
+    try {
+      await classroomService.signOut();
+      clearClassroomAuth();
+      return { success: true };
+    } catch (error) {
+      console.error('Error signing out of Classroom:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  const signInCalendar = async () => {
+    setCalendarAuth(prev => ({ ...prev, loading: true }));
+    
+    try {
+      const result = await calendarService.signIn();
+      
+      if (result.success) {
+        const userData = {
+          name: result.user.getName(),
+          email: result.user.getEmail(),
+          imageUrl: result.user.getImageUrl()
+        };
+        
+        // Store in localStorage
+        localStorage.setItem('calendar_access_token', result.accessToken);
+        localStorage.setItem('calendar_user', JSON.stringify(userData));
+        
+        setCalendarAuth({
+          isSignedIn: true,
+          user: userData,
+          accessToken: result.accessToken,
+          loading: false
+        });
+        
+        return { success: true };
+      } else {
+        setCalendarAuth(prev => ({ ...prev, loading: false }));
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      setCalendarAuth(prev => ({ ...prev, loading: false }));
+      return { success: false, error: error.message };
+    }
+  };
+
+  const signOutCalendar = async () => {
+    try {
+      await calendarService.signOut();
+      clearCalendarAuth();
+      return { success: true };
+    } catch (error) {
+      console.error('Error signing out of Calendar:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
   const clearGmailAuth = () => {
     localStorage.removeItem('gmail_access_token');
     localStorage.removeItem('gmail_user');
@@ -213,24 +349,58 @@ export const GoogleAuthProvider = ({ children }) => {
     driveService.accessToken = null;
   };
 
+  const clearClassroomAuth = () => {
+    localStorage.removeItem('classroom_access_token');
+    localStorage.removeItem('classroom_user');
+    setClassroomAuth({
+      isSignedIn: false,
+      user: null,
+      accessToken: null,
+      loading: false
+    });
+    classroomService.accessToken = null;
+  };
+
+  const clearCalendarAuth = () => {
+    localStorage.removeItem('calendar_access_token');
+    localStorage.removeItem('calendar_user');
+    setCalendarAuth({
+      isSignedIn: false,
+      user: null,
+      accessToken: null,
+      loading: false
+    });
+    calendarService.accessToken = null;
+  };
+
   // Sign out from all Google services
   const signOutAll = async () => {
     await Promise.all([
       signOutGmail(),
-      signOutDrive()
+      signOutDrive(),
+      signOutClassroom(),
+      signOutCalendar()
     ]);
   };
 
   const value = {
     gmailAuth,
     driveAuth,
+    classroomAuth,
+    calendarAuth,
     signInGmail,
     signInDrive,
+    signInClassroom,
+    signInCalendar,
     signOutGmail,
     signOutDrive,
+    signOutClassroom,
+    signOutCalendar,
     signOutAll,
     clearGmailAuth,
-    clearDriveAuth
+    clearDriveAuth,
+    clearClassroomAuth,
+    clearCalendarAuth
   };
 
   return (

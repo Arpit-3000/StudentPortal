@@ -8,10 +8,13 @@ import LeaveManagement from './LeaveManagement';
 import GateManagement from './GateManagement';
 import MailAndNotices from './MailAndNotices';
 import GoogleDrive from './GoogleDrive';
+import GoogleClassroom from './GoogleClassroom';
+import GoogleCalendar from './GoogleCalendar';
 import PremiumSidebar from '../../components/PremiumSidebar';
 import PremiumHeader from '../../components/PremiumHeader';
 import PremiumDashboard from '../../components/PremiumDashboard';
 import UnderDevelopment from '../../components/UnderDevelopment';
+import ErrorBoundary from '../../components/ErrorBoundary';
 
 const StudentPortal = () => {
   const { user, logout } = useAuth();
@@ -59,6 +62,18 @@ const StudentPortal = () => {
         return <MailAndNotices />;
       case 'googledrive':
         return <GoogleDrive />;
+      case 'classroom':
+        return (
+          <ErrorBoundary>
+            <GoogleClassroom />
+          </ErrorBoundary>
+        );
+      case 'calendar':
+        return (
+          <ErrorBoundary>
+            <GoogleCalendar />
+          </ErrorBoundary>
+        );
       default:
         const pageName = selectedOption.charAt(0).toUpperCase() + selectedOption.slice(1).replace(/([A-Z])/g, ' $1');
         return <UnderDevelopment pageName={pageName} />;
@@ -66,11 +81,11 @@ const StudentPortal = () => {
   };
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f9fafb' }}>
       {/* Sidebar */}
       <PremiumSidebar
-          open={mobileOpen}
-          onClose={handleDrawerToggle}
+        open={mobileOpen}
+        onClose={handleDrawerToggle}
         selectedOption={selectedOption}
         onOptionSelect={handleOptionSelect}
         user={user}
@@ -85,7 +100,7 @@ const StudentPortal = () => {
           flexGrow: 1,
           width: { md: 'calc(100% - 240px)' },
           minHeight: '100vh',
-          backgroundColor: '#f8fafc',
+          backgroundColor: '#f9fafb',
           marginLeft: { md: '240px' },
         }}
       >
@@ -102,21 +117,22 @@ const StudentPortal = () => {
         {/* Content */}
         <Box 
           sx={{ 
-            mt: '80px', 
-            minHeight: 'calc(100vh - 80px)', 
+            mt: '64px', 
+            minHeight: 'calc(100vh - 64px)', 
             overflow: 'auto',
+            backgroundColor: '#f9fafb',
             '&::-webkit-scrollbar': {
               width: '6px',
             },
             '&::-webkit-scrollbar-track': {
-              background: '#f1f5f9',
+              background: '#f3f4f6',
             },
             '&::-webkit-scrollbar-thumb': {
-              background: '#cbd5e1',
+              background: '#d1d5db',
               borderRadius: '3px',
             },
             '&::-webkit-scrollbar-thumb:hover': {
-              background: '#94a3b8',
+              background: '#9ca3af',
             },
           }}
         >
